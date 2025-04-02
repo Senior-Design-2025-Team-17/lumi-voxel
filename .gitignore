@@ -1,0 +1,17 @@
+# Build directories
+build/
+CMakeFiles/
+Debug/
+Release/
+
+# Debug Files
+*.launch
+
+# Settings
+.vs*/
+.settings/
+
+# Build artifacts
+.obj
+.elf
+.hex
