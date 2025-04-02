@@ -73,7 +73,7 @@ static void MX_SPI6_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+extern void run();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -123,9 +123,7 @@ int main(void)
   MX_TIM6_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  REG_EN_GPIO_Port->BSRR = REG_EN_Pin;
-  LED_RED_GPIO_Port->BSRR = LED_RED_Pin;
-  LED_GREEN_GPIO_Port->BSRR = LED_GREEN_Pin;
+  run();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -342,7 +340,7 @@ static void MX_SPI2_Init(void)
   hspi2.Instance = SPI2;
   hspi2.Init.Mode = SPI_MODE_MASTER;
   hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi2.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_HARD_OUTPUT;
@@ -390,7 +388,7 @@ static void MX_SPI3_Init(void)
   hspi3.Instance = SPI3;
   hspi3.Init.Mode = SPI_MODE_MASTER;
   hspi3.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi3.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi3.Init.NSS = SPI_NSS_HARD_OUTPUT;
@@ -698,6 +696,8 @@ void MPU_Config(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
+  LED_RED_GPIO_Port->BSRR = LED_RED_Pin;
+
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)

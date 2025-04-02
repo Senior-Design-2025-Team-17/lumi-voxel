@@ -1,0 +1,47 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# STM32 Cube IDE build artifacts
+/Debug
+/Debug/*
+/Release
+/Release/*
+
+# STM32 Cube IDE debug configurations
+*.launch
+
+# STM32 Cube IDE settings
+.settings/*
+
+# VS Code
+.vscode/

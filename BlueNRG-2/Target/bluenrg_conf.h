@@ -56,7 +56,7 @@ extern "C" {
 /*---------- Maximum Connection Length (for a number N, Time = N x 0.625 msec) -----------*/
 #define CONN_L2      2000
 /*---------- Advertising Type -----------*/
-#define ADV_DATA_TYPE      ADV_IND
+#define ADV_DATA_TYPE      ADV_SCAN_IND
 /*---------- Minimum Advertising Interval (for a number N, Time = N x 0.625 msec) -----------*/
 #define ADV_INTERV_MIN      2048
 /*---------- Maximum Advertising Interval (for a number N, Time = N x 0.625 msec) -----------*/
