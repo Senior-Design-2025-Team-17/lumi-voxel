@@ -10,7 +10,7 @@
 #include "scheduler.hpp"
 #include "errors.hpp"
 
-using namespace PSR;
+using namespace LumiVoxel;
 
 bool Scheduler::Init()
 {

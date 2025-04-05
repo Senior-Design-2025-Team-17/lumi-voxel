@@ -16,7 +16,7 @@
 
 #include <cstdint>
 
-namespace PSR
+namespace LumiVoxel
 {
 
 class GpioPin
@@ -59,4 +59,4 @@ class GpioPin
 	}
 };
 
-} // namespace PSR
+} // namespace LumiVoxel

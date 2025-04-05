@@ -1,6 +1,6 @@
 #include "errors.hpp"
 
-using namespace PSR;
+using namespace LumiVoxel;
 
 using Error = ErrorMessage::Error;
 

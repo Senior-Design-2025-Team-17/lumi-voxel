@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace PSR
+namespace LumiVoxel
 {
 
 class HighPrecisionCounter
@@ -140,4 +140,4 @@ class HighPrecisionCounter
 	bool AddDelayedCallback(uint32_t delay, const std::function<void()>& callback);
 };
 
-} // namespace PSR
+} // namespace LumiVoxel

@@ -7,7 +7,7 @@
 #include <array>
 #include <functional>
 
-namespace PSR
+namespace LumiVoxel
 {
 
 class InterruptQueue
@@ -22,4 +22,4 @@ class InterruptQueue
 	static void HandleQueue() __attribute__((section(".RamFunc")));
 };
 
-} // namespace PSR
+} // namespace LumiVoxel

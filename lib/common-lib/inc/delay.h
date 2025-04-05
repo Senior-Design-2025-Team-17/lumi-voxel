@@ -21,7 +21,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-namespace PSR
+namespace LumiVoxel
 {
 
 /**
@@ -47,6 +47,6 @@ void delayMicroseconds(TIM_TypeDef* timer1MHz, uint16_t microseconds)
 	{}
 }
 
-} // namespace PSR
+} // namespace LumiVoxel
 
 #endif // End of include guard for delay.h

@@ -4,6 +4,10 @@ CMakeFiles/
 Debug/
 Release/
 
+CMakeCache.txt
+
+cmake/st-project.cmake
+
 # Debug Files
 *.launch
 
@@ -15,3 +19,4 @@ Release/
 .obj
 .elf
 .hex
+cmake/st-project.cmake

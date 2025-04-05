@@ -2,7 +2,7 @@
 #include "interrupt_queue.hpp"
 #include "timer_helpers.h"
 
-using namespace PSR;
+using namespace LumiVoxel;
 
 void HighPrecisionCounter::Update(uint32_t statusRegister, bool suppressCallbacks)
 {

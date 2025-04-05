@@ -12,7 +12,7 @@
 #include <cstring>
 #include <memory>
 
-namespace PSR
+namespace LumiVoxel
 {
 
 /// @brief Contains logic for creating and displaying nested error messages
@@ -107,4 +107,4 @@ class ErrorMessage
 	}
 };
 
-} // namespace PSR
+} // namespace LumiVoxel

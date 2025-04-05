@@ -22,7 +22,7 @@
 #include <bitset>
 #include <functional>
 
-namespace PSR
+namespace LumiVoxel
 {
 
 /**
@@ -267,4 +267,4 @@ class Scheduler
 	void SetPaused(bool paused) { this->paused = paused; }
 };
 
-} // namespace PSR
+} // namespace LumiVoxel

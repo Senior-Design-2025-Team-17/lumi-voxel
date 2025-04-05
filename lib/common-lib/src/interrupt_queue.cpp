@@ -4,7 +4,7 @@
 
 #include <cstdio>
 
-using namespace PSR;
+using namespace LumiVoxel;
 
 std::array<std::function<void()>, InterruptQueue::MaxDepth> InterruptQueue::Queue;
 volatile size_t InterruptQueue::InterruptsPending = 0;

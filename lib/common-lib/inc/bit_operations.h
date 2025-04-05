@@ -18,7 +18,7 @@
 // Assert that types are integral and not pointers to make warnings and errors more helpful.
 #define __ASSERT_INTEGRAL(T) static_assert(std::is_integral<T>::value && !std::is_pointer<T>::value, #T " must be integral.")
 
-namespace PSR
+namespace LumiVoxel
 {
 
 /**
@@ -215,6 +215,6 @@ constexpr bool hasFlag(T value, T flag)
 	return (v & f) == f;
 }
 
-} // namespace PSR
+} // namespace LumiVoxel
 
 #endif // End of include guard for bit_opeartions.h
