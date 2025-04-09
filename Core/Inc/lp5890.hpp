@@ -3,6 +3,8 @@
  * @author Aidan Orr
  * @brief Interface for the LP5890 LED driver
  * @version 0.1
+ * 
+ * @details References: https://www.ti.com/lit/ds/symlink/lp5890.pdf
  */
 #pragma once
 
@@ -82,7 +84,7 @@ class Driver
 			return true;
 	
 		// Initialize the LP5899 driver
-		if (!interface.Init())
+		if (!interface.Init(hpc))
 		{
 			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 Interface initialization failed");
 			return false;

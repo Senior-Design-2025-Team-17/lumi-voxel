@@ -64,6 +64,17 @@ bool Lp5899::Init(HighPrecisionCounter& hpc)
 			ErrorMessage::SetMessage("LP5899 - Initialization failed: Device entered failsafe mode");
 		else
 			ErrorMessage::SetMessage("LP5899 - Initialization failed: Device not responding");
+
+		return false;
+	}
+
+	ErrorMessage::ClearMessage();
+
+	uint16_t deviceId;
+	if (!TryReadDeviceId(deviceId, false) && deviceId != DEVICE_ID)
+	{
+		ErrorMessage::WrapMessage("LP5899 - Initialization failed: Device ID mismatch");
+		return false;
 	}
 
 	initialized = true;
@@ -77,11 +88,11 @@ bool Lp5899::TryReadRegisterInit(Lp5899::RegisterAddr reg, uint16_t& value)
 
 	std::array<uint16_t, 4> sendData = { command, 0xFF, 0, 0 };
 	uint16_t crc0 = CalculateCrc(std::span(sendData.data(), 1));
-	sendData[2] = crc0;
+	sendData[1] = crc0;
 
 	std::array<uint16_t, 4> recvData = { 0, 0, 0xFF, 0xFF };
 
-	HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(spi, reinterpret_cast<uint8_t*>(sendData.data()), reinterpret_cast<uint8_t*>(recvData.data()), sizeof(sendData), HAL_MAX_DELAY);
+	HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(spi, reinterpret_cast<uint8_t*>(sendData.data()), reinterpret_cast<uint8_t*>(recvData.data()), sizeof(sendData), 100);
 
 	if (status != HAL_OK)
 	{

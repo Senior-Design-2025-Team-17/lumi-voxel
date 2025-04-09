@@ -3,11 +3,15 @@
  * @author Aidan Orr
  * @brief Interface for the LP5899 inteface IC
  * @version 0.1
+ * 
+ * @details References: https://www.ti.com/lit/ds/symlink/lp5899.pdf
  *
  * @copyright Copyright (c) 2025
  */
 
 #pragma once
+
+#include "high_precision_counter.hpp"
 
 #include "stm32_includer.h"
 #include STM32_INCLUDE(STM32_PROCESSOR, hal.h)
@@ -220,6 +224,8 @@ class Lp5899
 
 		uint16_t Value;
 	};
+
+	static constexpr uint16_t DEVICE_ID = 0xED99; ///< @brief Device ID for LP5899
 
 	/**
 	 * @brief Construct a new Lp5899 object

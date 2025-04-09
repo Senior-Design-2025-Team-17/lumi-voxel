@@ -9,6 +9,7 @@
 #include "main.h"
 
 #include "errors.hpp"
+#include "high_precision_counter.hpp"
 #include "lp5890.hpp"
 #include "lp5899.hpp"
 #include "scheduler.hpp"
@@ -40,9 +41,10 @@ std::array<float, numLeds> blue __attribute__((section(".dtcmram")));
 float brightness;
 
 Scheduler scheduler(TIM6, 500, 32, 500 * 60);
+HighPrecisionCounter hpCounter(TIM7, 10000);
 
-Lp5899 if1 __attribute__((section(".dtcmram"))) (&hspi1);
-Lp5899 if2 __attribute__((section(".dtcmram"))) (&hspi1);
+Lp5899 if1 __attribute__((section(".dtcmram"))) (&hspi2);
+Lp5899 if2 __attribute__((section(".dtcmram"))) (&hspi3);
 
 Lp5890::Driver<numLeds / 2> ledDriver1 __attribute__((section(".dtcmram"))) (if1, brightness);
 Lp5890::Driver<numLeds / 2> ledDriver2 __attribute__((section(".dtcmram"))) (if2, brightness);
@@ -53,13 +55,27 @@ void setup()
 
 	puts(CLEAR_BUFFER CLEAR_SCREEN CURSOR_HOME "Hello World!\n");
 
-	red.fill(0);
-	green.fill(0);
-	blue.fill(0);
-
 	// Initialize the scheduler
 	if (scheduler.Init())
 		puts("Scheduler initialized successfully");
+	else
+	{
+		ErrorMessage::PrintMessage();
+		Error_Handler();
+	}
+
+	// Initialize the high precision counter
+	if (hpCounter.Init())
+		puts("High precision counter initialized successfully");
+	else
+	{
+		ErrorMessage::PrintMessage();
+		Error_Handler();
+	}
+
+	// Initialize the LP5890 LED driver 1
+	if (ledDriver1.Init(hpCounter))
+		puts("LED driver 1 initialized successfully");
 	else
 	{
 		ErrorMessage::PrintMessage();

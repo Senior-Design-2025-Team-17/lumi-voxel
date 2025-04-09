@@ -125,6 +125,7 @@ target_sources(
     "lib\\common-lib\\src\\timer_helpers.c"
     "BlueNRG-2\\Target\\hci_tl_interface.c"
     "Core\\Src\\custom_bus.c"
+    "Core\\Src\\lp5899.cpp"
     "Core\\Src\\main.c"
     "Core\\Src\\run.cpp"
     "Core\\Src\\stm32h7xx_hal_msp.c"
@@ -170,6 +171,8 @@ target_sources(
     "Drivers\\STM32H7xx_HAL_Driver\\Src\\stm32h7xx_hal_uart_ex.c"
     "Drivers\\STM32H7xx_HAL_Driver\\Src\\stm32h7xx_hal_uart.c"
     "Drivers\\STM32H7xx_HAL_Driver\\Src\\stm32h7xx_hal.c"
+    "CMakeFiles\\3.20.0\\CompilerIdC\\CMakeCCompilerId.c"
+    "CMakeFiles\\3.20.0\\CompilerIdCXX\\CMakeCXXCompilerId.cpp"
 )
 
 add_custom_command(
