@@ -30,6 +30,7 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 
 #include "hci_tl_interface.h"
+#include "custom.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -58,20 +59,20 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LED_GREEN_Pin GPIO_PIN_14
-#define LED_GREEN_GPIO_Port GPIOC
 #define LED_RED_Pin GPIO_PIN_15
 #define LED_RED_GPIO_Port GPIOC
 #define SPI1_NSS_Pin GPIO_PIN_4
 #define SPI1_NSS_GPIO_Port GPIOA
 #define BLE_EXTI_Pin GPIO_PIN_4
 #define BLE_EXTI_GPIO_Port GPIOC
+#define BLE_EXTI_EXTI_IRQn EXTI4_IRQn
 #define BLE_RESET_Pin GPIO_PIN_5
 #define BLE_RESET_GPIO_Port GPIOC
 #define BRIGHTNESS_Pin GPIO_PIN_1
 #define BRIGHTNESS_GPIO_Port GPIOB
 #define REG_EN_Pin GPIO_PIN_6
 #define REG_EN_GPIO_Port GPIOC
+#define BSP_BUTTON_EXTI_IRQn EXTI9_5_IRQn
 #define SPI6_NSS_Pin GPIO_PIN_6
 #define SPI6_NSS_GPIO_Port GPIOB
 

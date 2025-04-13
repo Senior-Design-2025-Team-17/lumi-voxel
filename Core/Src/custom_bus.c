@@ -271,9 +271,9 @@ __weak HAL_StatusTypeDef MX_SPI1_Init(SPI_HandleTypeDef* hspi)
   hspi->Init.Direction = SPI_DIRECTION_2LINES;
   hspi->Init.DataSize = SPI_DATASIZE_8BIT;
   hspi->Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi->Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi->Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi->Init.NSS = SPI_NSS_SOFT;
-  hspi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
   hspi->Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi->Init.TIMode = SPI_TIMODE_DISABLE;
   hspi->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -321,7 +321,7 @@ static void SPI1_MspInit(SPI_HandleTypeDef* spiHandle)
     */
     GPIO_InitStruct.Pin = BUS_SPI1_SCK_GPIO_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     GPIO_InitStruct.Alternate = BUS_SPI1_SCK_GPIO_AF;
     HAL_GPIO_Init(BUS_SPI1_SCK_GPIO_PORT, &GPIO_InitStruct);

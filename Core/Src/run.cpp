@@ -14,6 +14,7 @@
 #include "lp5899.hpp"
 #include "scheduler.hpp"
 #include "syscall_retarget.hpp"
+#include "app_bluenrg_2.h"
 
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_def.h"
@@ -73,20 +74,22 @@ void setup()
 		Error_Handler();
 	}
 
-	// Initialize the LP5890 LED driver 1
-	if (ledDriver1.Init(hpCounter))
-		puts("LED driver 1 initialized successfully");
-	else
-	{
-		ErrorMessage::PrintMessage();
-		Error_Handler();
-	}
-
 	// Enable the 3.8V and 2.8V regulators
 	REG_EN_GPIO_Port->BSRR = REG_EN_Pin;
 	
+	//Bluetooth
+	MX_BlueNRG_2_Init();
+	// Initialize the LP5890 LED driver 1
+//	if (ledDriver1.Init(hpCounter))
+//		puts("LED driver 1 initialized successfully");
+//	else
+//	{
+//		ErrorMessage::PrintMessage();
+//		Error_Handler();
+//	}
+
 	// Turn on the green LED
-	LED_GREEN_GPIO_Port->BSRR = LED_GREEN_Pin;
+//	LED_GREEN_GPIO_Port->BSRR = LED_GREEN_Pin;
 }
 
 extern "C" void run()
@@ -94,5 +97,10 @@ extern "C" void run()
 	setup();
 
 	while (true)
+	{
 		__WFI();
+	}
 }
+
+
+

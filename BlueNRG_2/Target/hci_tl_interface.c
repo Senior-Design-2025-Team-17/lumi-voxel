@@ -303,6 +303,7 @@ static int32_t IsDataAvailable(void)
 void hci_tl_lowlevel_init(void)
 {
   /* USER CODE BEGIN hci_tl_lowlevel_init 1 */
+  /* Register IO bus services */
 
   /* USER CODE END hci_tl_lowlevel_init 1 */
   tHciIO fops;
@@ -318,6 +319,7 @@ void hci_tl_lowlevel_init(void)
   hci_register_io_bus (&fops);
 
   /* USER CODE BEGIN hci_tl_lowlevel_init 2 */
+  /* Register event irq handler */
 
   /* USER CODE END hci_tl_lowlevel_init 2 */
 
@@ -351,6 +353,7 @@ void hci_tl_lowlevel_isr(void)
   }
 
   /* USER CODE BEGIN hci_tl_lowlevel_isr */
+  /* Call hci_notify_asynch_evt() */
 
   /* USER CODE END hci_tl_lowlevel_isr */
 }

@@ -30,11 +30,11 @@ extern "C" {
 #include <string.h>
 
 /*---------- Print messages from BLE2 files at user level -----------*/
-#define BLE2_DEBUG      0
+#define BLE2_DEBUG      1
 /*---------- Print the data travelling over the SPI in the .csv format compatible with the ST BlueNRG GUI -----------*/
 #define PRINT_CSV_FORMAT      0
 /*---------- Print messages from BLE2 files at middleware level -----------*/
-#define BLUENRG2_DEBUG      0
+#define BLUENRG2_DEBUG      1
 /*---------- Number of Bytes reserved for HCI Read Packet -----------*/
 #define HCI_READ_PACKET_SIZE      128
 /*---------- Number of Bytes reserved for HCI Max Payload -----------*/
@@ -56,7 +56,7 @@ extern "C" {
 /*---------- Maximum Connection Length (for a number N, Time = N x 0.625 msec) -----------*/
 #define CONN_L2      2000
 /*---------- Advertising Type -----------*/
-#define ADV_DATA_TYPE      ADV_SCAN_IND
+#define ADV_DATA_TYPE      ADV_IND
 /*---------- Minimum Advertising Interval (for a number N, Time = N x 0.625 msec) -----------*/
 #define ADV_INTERV_MIN      2048
 /*---------- Maximum Advertising Interval (for a number N, Time = N x 0.625 msec) -----------*/
