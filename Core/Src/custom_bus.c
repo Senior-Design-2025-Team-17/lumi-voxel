@@ -280,7 +280,7 @@ __weak HAL_StatusTypeDef MX_SPI1_Init(SPI_HandleTypeDef* hspi)
   hspi->Init.CRCPolynomial = 0x0;
   hspi->Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
   hspi->Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
-  hspi->Init.FifoThreshold = SPI_FIFO_THRESHOLD_01DATA;
+  hspi->Init.FifoThreshold = SPI_FIFO_THRESHOLD_08DATA;
   hspi->Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
   hspi->Init.RxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
   hspi->Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_00CYCLE;
@@ -322,21 +322,21 @@ static void SPI1_MspInit(SPI_HandleTypeDef* spiHandle)
     GPIO_InitStruct.Pin = BUS_SPI1_SCK_GPIO_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = BUS_SPI1_SCK_GPIO_AF;
     HAL_GPIO_Init(BUS_SPI1_SCK_GPIO_PORT, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = BUS_SPI1_MISO_GPIO_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = BUS_SPI1_MISO_GPIO_AF;
     HAL_GPIO_Init(BUS_SPI1_MISO_GPIO_PORT, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = BUS_SPI1_MOSI_GPIO_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = BUS_SPI1_MOSI_GPIO_AF;
     HAL_GPIO_Init(BUS_SPI1_MOSI_GPIO_PORT, &GPIO_InitStruct);
 

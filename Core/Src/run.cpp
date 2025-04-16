@@ -44,11 +44,11 @@ float brightness;
 Scheduler scheduler(TIM6, 500, 32, 500 * 60);
 HighPrecisionCounter hpCounter(TIM7, 10000);
 
-Lp5899 if1 __attribute__((section(".dtcmram"))) (&hspi2);
-Lp5899 if2 __attribute__((section(".dtcmram"))) (&hspi3);
+Lp5899 if1 __attribute__((section(".dtcmram"))) (&hspi2, GpioPin(SPI2_NSS_GPIO_Port, SPI2_NSS_Pin));
+// Lp5899 if2 __attribute__((section(".dtcmram"))) (&hspi3);
 
 Lp5890::Driver<numLeds / 2> ledDriver1 __attribute__((section(".dtcmram"))) (if1, brightness);
-Lp5890::Driver<numLeds / 2> ledDriver2 __attribute__((section(".dtcmram"))) (if2, brightness);
+// Lp5890::Driver<numLeds / 2> ledDriver2 __attribute__((section(".dtcmram"))) (if2, brightness);
 
 void setup()
 {
@@ -77,16 +77,17 @@ void setup()
 	// Enable the 3.8V and 2.8V regulators
 	REG_EN_GPIO_Port->BSRR = REG_EN_Pin;
 	
+	// // Initialize the LP5890 LED driver 1
+	// if (ledDriver1.Init(hpCounter))
+	// 	puts("LED driver 1 initialized successfully");
+	// else
+	// {
+	// 	ErrorMessage::PrintMessage();
+	// 	Error_Handler();
+	// }
+
 	//Bluetooth
 	MX_BlueNRG_2_Init();
-	// Initialize the LP5890 LED driver 1
-//	if (ledDriver1.Init(hpCounter))
-//		puts("LED driver 1 initialized successfully");
-//	else
-//	{
-//		ErrorMessage::PrintMessage();
-//		Error_Handler();
-//	}
 
 	// Turn on the green LED
 //	LED_GREEN_GPIO_Port->BSRR = LED_GREEN_Pin;
@@ -98,7 +99,8 @@ extern "C" void run()
 
 	while (true)
 	{
-		__WFI();
+		// __WFI();
+		MX_BlueNRG_2_Process();
 	}
 }
 

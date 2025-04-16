@@ -70,9 +70,13 @@ void Error_Handler(void);
 #define BLE_RESET_GPIO_Port GPIOC
 #define BRIGHTNESS_Pin GPIO_PIN_1
 #define BRIGHTNESS_GPIO_Port GPIOB
+#define SPI2_NSS_Pin GPIO_PIN_12
+#define SPI2_NSS_GPIO_Port GPIOB
 #define REG_EN_Pin GPIO_PIN_6
 #define REG_EN_GPIO_Port GPIOC
 #define BSP_BUTTON_EXTI_IRQn EXTI9_5_IRQn
+#define SPI3_NSS_Pin GPIO_PIN_15
+#define SPI3_NSS_GPIO_Port GPIOA
 #define SPI6_NSS_Pin GPIO_PIN_6
 #define SPI6_NSS_GPIO_Port GPIOB
 
