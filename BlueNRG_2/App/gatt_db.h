@@ -36,8 +36,11 @@
 #define CLIENT_MAX_MTU_SIZE 158
 
 tBleStatus Add_Sample_Service(void);
+tBleStatus Add_Triangle_Mesh_Service(void);
+tBleStatus Add_Triangle_transform_Service(void);
 void APP_UserEvtRx(void *pData);
 
 extern uint16_t sampleServHandle, TXCharHandle, RXCharHandle;
+extern uint16_t TrianglemeshServHandle, TrianglemeshTxCharHandle, TriangleMeshRxCharHandle;
 
 #endif /* GATT_DB_H */

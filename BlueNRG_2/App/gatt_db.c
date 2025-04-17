@@ -28,11 +28,60 @@
 	uuid_struct.uuid128[12] = uuid_12; uuid_struct.uuid128[13] = uuid_13; uuid_struct.uuid128[14] = uuid_14; uuid_struct.uuid128[15] = uuid_15; \
 	}while(0)
 
-uint16_t sampleServHandle, TXCharHandle, RXCharHandle;
+uint16_t sampleServHandle, sampleTXCharHandle, sampleRXCharHandle;
+uint16_t TrianglemeshServHandle, TrianglemeshTxCharHandle, TriangleMeshRxCharHandle;
 
 /* UUIDs */
 Service_UUID_t service_uuid;
 Char_UUID_t char_uuid;
+
+tBleStatus Add_Triangle_Mesh_Service(void)
+{
+	uint8_t ret;
+	/**
+	* Number of attribute records that can be added to this service
+	* For this service it is given by:
+	* 1 (fixed value) + 3 (for characteristic with CHAR_PROP_NOTIFY) + 2 (for characteristic with CHAR_PROP_WRITE)
+	*/
+	uint8_t max_attribute_records = 1+3+2;
+
+	/*
+	UUIDs:
+	0A16D1E0-1B1B-11F0-9E92-0800200C9A66
+	0A16D1E1-1B1B-11F0-9E92-0800200C9A66
+	0A16D1E2-1B1B-11F0-9E92-0800200C9A66
+	*/
+
+	const uint8_t uuid[16] = {0x66,0x9a,0x0c,0x20,0x00,0x08,0x92,0x9e,0xf0,0x11,0x1b,0x1b,0xe0,0xd1,0x16,0x0a};
+	const uint8_t charUuidTX[16] = {0x66,0x9a,0x0c,0x20,0x00,0x08,0x92,0x9e,0xf0,0x11,0x1b,0x1b,0xe1,0xd1,0x16,0x0a};
+	const uint8_t charUuidRX[16] = {0x66,0x9a,0x0c,0x20,0x00,0x08,0x92,0x9e,0xf0,0x11,0x1b,0x1b,0xe2,0xd1,0x16,0x0a};
+
+	BLUENRG_memcpy(&service_uuid.Service_UUID_128, uuid, 16);
+
+	ret = aci_gatt_add_service(UUID_TYPE_128, &service_uuid, PRIMARY_SERVICE, max_attribute_records, &TrianglemeshServHandle);
+	if (ret != BLE_STATUS_SUCCESS) goto fail;
+
+	BLUENRG_memcpy(&char_uuid.Char_UUID_128, charUuidTX, 16);
+	ret =  aci_gatt_add_char(TrianglemeshServHandle, UUID_TYPE_128, &char_uuid, CHAR_VALUE_LENGTH, CHAR_PROP_NOTIFY, ATTR_PERMISSION_NONE, 0,
+				16, 1, &TrianglemeshTxCharHandle);
+	if (ret != BLE_STATUS_SUCCESS) goto fail;
+
+	BLUENRG_memcpy(&char_uuid.Char_UUID_128, charUuidRX, 16);
+	ret =  aci_gatt_add_char(TrianglemeshServHandle, UUID_TYPE_128, &char_uuid, CHAR_VALUE_LENGTH, CHAR_PROP_WRITE|CHAR_PROP_WRITE_WITHOUT_RESP, ATTR_PERMISSION_NONE, GATT_NOTIFY_ATTRIBUTE_WRITE,
+				16, 1, &TriangleMeshRxCharHandle);
+	if (ret != BLE_STATUS_SUCCESS) goto fail;
+
+	PRINT_DBG("Sample Service added.\r\nTX Char Handle %04X, RX Char Handle %04X\r\n", TrianglemeshTxCharHandle, TriangleMeshRxCharHandle);
+	return BLE_STATUS_SUCCESS;
+
+	fail:
+	  PRINT_DBG("Error while adding Sample service.\r\n");
+	  return BLE_STATUS_ERROR ;
+}
+tBleStatus Add_Triangle_transform_Service(void)
+{
+
+}
 
 /*******************************************************************************
 * Function Name  : Add_Sample_Service
@@ -68,15 +117,15 @@ uint8_t Add_Sample_Service(void)
 
   BLUENRG_memcpy(&char_uuid.Char_UUID_128, charUuidTX, 16);
   ret =  aci_gatt_add_char(sampleServHandle, UUID_TYPE_128, &char_uuid, CHAR_VALUE_LENGTH, CHAR_PROP_NOTIFY, ATTR_PERMISSION_NONE, 0,
-                16, 1, &TXCharHandle);
+                16, 1, &sampleTXCharHandle);
   if (ret != BLE_STATUS_SUCCESS) goto fail;
 
   BLUENRG_memcpy(&char_uuid.Char_UUID_128, charUuidRX, 16);
   ret =  aci_gatt_add_char(sampleServHandle, UUID_TYPE_128, &char_uuid, CHAR_VALUE_LENGTH, CHAR_PROP_WRITE|CHAR_PROP_WRITE_WITHOUT_RESP, ATTR_PERMISSION_NONE, GATT_NOTIFY_ATTRIBUTE_WRITE,
-                16, 1, &RXCharHandle);
+                16, 1, &sampleRXCharHandle);
   if (ret != BLE_STATUS_SUCCESS) goto fail;
 
-  PRINT_DBG("Sample Service added.\r\nTX Char Handle %04X, RX Char Handle %04X\r\n", TXCharHandle, RXCharHandle);
+  PRINT_DBG("Sample Service added.\r\nTX Char Handle %04X, RX Char Handle %04X\r\n", sampleTXCharHandle, sampleRXCharHandle);
   return BLE_STATUS_SUCCESS;
 
 fail:

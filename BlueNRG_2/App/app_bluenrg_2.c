@@ -58,7 +58,8 @@ uint8_t user_button_init_state;
 static discoveryContext_t discovery;
 volatile int app_flags = SET_CONNECTABLE;
 volatile uint16_t connection_handle = 0;
-extern uint16_t chatServHandle, TXCharHandle, RXCharHandle;
+extern uint16_t sampleServHandle, sampleTXCharHandle, sampleRXCharHandle;
+extern uint16_t TrianglemeshServHandle, TrianglemeshTxCharHandle, TriangleMeshRxCharHandle;
 
 /* UUIDs */
 UUID_t UUID_Tx;
@@ -171,8 +172,20 @@ static void sendData(uint8_t* data_buffer, uint8_t Nb_bytes)
   if(device_role == SLAVE_ROLE)
   {
     while(aci_gatt_update_char_value_ext(connection_handle,
-                                         sampleServHandle,
-                                         TXCharHandle,
+    									 TrianglemeshServHandle,
+										 TrianglemeshTxCharHandle,
+                                         1, Nb_bytes, 0 ,Nb_bytes, data_buffer) == BLE_STATUS_INSUFFICIENT_RESOURCES)
+    {
+      APP_FLAG_SET(TX_BUFFER_FULL);
+      while(APP_FLAG(TX_BUFFER_FULL)) {
+        hci_user_evt_proc();
+        // Radio is busy (buffer full).
+        if ((HAL_GetTick() - tickstart) > (10*HCI_DEFAULT_TIMEOUT_MS)) break;
+      }
+    }
+    while(aci_gatt_update_char_value_ext(connection_handle,
+    									 sampleServHandle,
+										 sampleTXCharHandle,
                                          1, Nb_bytes, 0 ,Nb_bytes, data_buffer) == BLE_STATUS_INSUFFICIENT_RESOURCES)
     {
       APP_FLAG_SET(TX_BUFFER_FULL);
@@ -202,6 +215,24 @@ static void sendData(uint8_t* data_buffer, uint8_t Nb_bytes)
  * @retval None
  */
 static void receiveData(uint8_t* data_buffer, uint8_t Nb_bytes)
+{
+  BSP_LED_Toggle(LED2);
+
+  for(int i = 0; i < Nb_bytes; i++)
+  {
+    PRINT_DBG("%c", data_buffer[i]);
+  }
+  fflush(stdout);
+}
+
+/**
+ * @brief  This function is used to receive data related to the sample service
+ *         (received over the air from the remote board).
+ * @param  data_buffer : pointer to store in received data
+ * @param  Nb_bytes : number of bytes to be received
+ * @retval None
+ */
+static void receiveTriangleMesh(uint8_t* data_buffer, uint8_t Nb_bytes)
 {
   BSP_LED_Toggle(LED2);
 
@@ -249,7 +280,7 @@ static void Reset_DiscoveryContext(void)
 static void Setup_DeviceAddress(void)
 {
   tBleStatus ret;
-  uint8_t bdaddr[] = {0x00, 0x00, 0x00, 0xE1, 0x80, 0x02};
+  uint8_t bdaddr[] = {0x00, 0x00, 0x00, 0x93, 0x03, 0x00};
   uint8_t random_number[8];
 
   /* get a random number from BlueNRG */
@@ -335,11 +366,23 @@ static uint8_t Find_DeviceName(uint8_t data_length, uint8_t *data_value)
 *******************************************************************************/
 static void Attribute_Modified_CB(uint16_t handle, uint8_t data_length, uint8_t *att_data)
 {
-  if(handle == RXCharHandle + 1)
+  if(handle == TriangleMeshRxCharHandle + 1)
+  {
+	 receiveTriangleMesh(att_data, data_length);
+  }
+  else if(handle == TrianglemeshTxCharHandle + 2)
+  {
+    if(att_data[0] == 0x01)
+    {
+      APP_FLAG_SET(NOTIFICATIONS_ENABLED);
+    }
+  }
+
+  if(handle == sampleRXCharHandle + 1)
   {
     receiveData(att_data, data_length);
   }
-  else if(handle == TXCharHandle + 2)
+  else if(handle == sampleTXCharHandle + 2)
   {
     if(att_data[0] == 0x01)
     {
@@ -394,6 +437,13 @@ static uint8_t SampleAppInit(void)
   if(ret != BLE_STATUS_SUCCESS)
   {
     PRINT_DBG("Error while adding service: 0x%02x\r\n", ret);
+    return ret;
+  }
+
+  ret = Add_Triangle_Mesh_Service();
+  if(ret != BLE_STATUS_SUCCESS)
+  {
+    PRINT_DBG("Error while adding Triangle Mesh service: 0x%02x\r\n", ret);
     return ret;
   }
 
@@ -672,31 +722,6 @@ static void User_Process(void)
           PRINT_DBG("aci_gatt_exchange_configuration error 0x%02x\r\n", ret);
         }
       }
-    }
-  }
-
-  /* Check if the user has pushed the button */
-  if (BSP_PB_GetState(BUTTON_KEY) == !user_button_init_state)
-  {
-    while (BSP_PB_GetState(BUTTON_KEY) == !user_button_init_state);
-
-    if(APP_FLAG(CONNECTED) && APP_FLAG(NOTIFICATIONS_ENABLED)){
-      /* Send a toggle command to the remote device */
-      uint8_t* data_ptr = data;
-      uint8_t  curr_len = 0;
-
-      while (data_ptr < (data + sizeof(data)))
-      {
-        /* if data to send are greater than the max char value length, send them in chunks */
-        curr_len = ((data + sizeof(data) - data_ptr) > write_char_len) ? (write_char_len) : (data + sizeof(data) - data_ptr);
-        sendData(data_ptr, curr_len);
-        data_ptr += curr_len;
-      }
-
-      //BSP_LED_Toggle(LED2);  // toggle the LED2 locally.
-                               // If uncommented be sure BSP_LED_Init(LED2) is
-                               // called in main().
-                               // E.g. it can be enabled for debugging.
     }
   }
 
