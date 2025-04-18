@@ -3,7 +3,7 @@
  * @author Aidan Orr
  * @brief Interface for the LP5899 inteface IC
  * @version 0.1
- * 
+ *
  * @details References: https://www.ti.com/lit/ds/symlink/lp5899.pdf
  *
  * @copyright Copyright (c) 2025
@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include "gpio_pin.hpp"
 #include "high_precision_counter.hpp"
 
 #include "stm32_includer.h"
@@ -30,7 +31,7 @@ class Lp5899
 {
 	enum struct CommandType : uint16_t
 	{
-		FWD_WR_CRC   = 0x2 << 12, ///< @brief Forward write CRC
+		FWD_WR_CRC     = 0x2 << 12, ///< @brief Forward write CRC
 		FWD_WR         = 0x3 << 12, ///< @brief Forward write
 		FWD_WR_END_CRC = 0x4 << 12, ///< @brief Forward write CRC with END bytes command
 		FWD_WR_END     = 0x5 << 12, ///< @brief Forward write with END bytes command
@@ -60,16 +61,41 @@ class Lp5899
 		RXFFST   = 0xA, ///< @brief Detail reception FIFO status
 	};
 
-	SPI_HandleTypeDef* const spi;
+	SPI_HandleTypeDef* const spi; ///< @brief Pointer to the SPI handle
+	GpioPin csPin;                ///< @brief Chip select pin for the SPI interface
 
 	bool initialized = false;
 
-	static uint16_t CalculateCrc(std::span<uint16_t> data)
+	static constexpr std::array<uint16_t, 256> ccittFalseCrcTable = []() {
+		std::array<uint16_t, 256> table = { 0 };
+
+		return table;
+	}();
+
+	static uint16_t CalculateCrc(std::span<uint8_t> data)
 	{
-		return 0; // TODO: Implement CRC calculation
+		constexpr int n         = 16;
+		constexpr uint16_t poly = 0x1021;
+
+		uint32_t rem = 0xFFFF;
+
+		for (size_t i = 0; i < data.size(); ++i)
+		{
+			rem ^= ((uint32_t)data[i]) << (n - 8);
+			for (size_t j = 0; j < 8; ++j)
+			{
+				if ((rem & 0x8000) != 0)
+					rem = (rem << 1) ^ poly;
+				else
+					rem <<= 1;
+			}
+		}
+
+		return (uint16_t)rem;
 	}
 
 	bool TryReadRegisterInit(RegisterAddr reg, uint16_t& value);
+	bool TryWriteRegisterInit(RegisterAddr reg, uint16_t value);
 
   public:
 	union SpiControl
@@ -231,8 +257,9 @@ class Lp5899
 	 * @brief Construct a new Lp5899 object
 	 *
 	 * @param spi A pointer to the SPI handle
+	 * @param csPin The chip select pin for the SPI interface
 	 */
-	Lp5899(SPI_HandleTypeDef* spi) : spi(spi)
+	Lp5899(SPI_HandleTypeDef* spi, GpioPin csPin) : spi(spi), csPin(csPin)
 	{}
 
 	/**
@@ -277,6 +304,7 @@ class Lp5899
 	bool TryReadTransmissionFifoStatus(TransmissionFifoStatus& transmissionFifoStatus, bool crc = false) { return TryReadRegister(RegisterAddr::TXFFST, transmissionFifoStatus.Value, crc); }
 	bool TryReadReceptionFifoStatus(ReceptionFifoStatus& receptionFifoStatus, bool crc = false) { return TryReadRegister(RegisterAddr::RXFFST, receptionFifoStatus.Value, crc); }
 
+	bool TrySoftReset();
 }; // class Lp5899
 
 } // namespace LumiVoxel

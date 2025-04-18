@@ -76,15 +76,23 @@ void setup()
 
 	// Enable the 3.8V and 2.8V regulators
 	REG_EN_GPIO_Port->BSRR = REG_EN_Pin;
-	
-	// // Initialize the LP5890 LED driver 1
-	// if (ledDriver1.Init(hpCounter))
-	// 	puts("LED driver 1 initialized successfully");
-	// else
-	// {
-	// 	ErrorMessage::PrintMessage();
-	// 	Error_Handler();
-	// }
+
+	if (if1.Init(hpCounter))
+		puts("LP5899 1 initialized successfully");
+	else
+	{
+		ErrorMessage::PrintMessage();
+		Error_Handler();
+	}
+
+	// Initialize the LP5890 LED driver 1
+	if (ledDriver1.Init(hpCounter))
+		puts("LED driver 1 initialized successfully");
+	else
+	{
+		ErrorMessage::PrintMessage();
+		Error_Handler();
+	}
 
 	//Bluetooth
 	MX_BlueNRG_2_Init();
@@ -104,5 +112,24 @@ extern "C" void run()
 	}
 }
 
+extern "C" void TIM6_DAC_IRQHandler(void)
+{
+	if (TIM6->SR & TIM_SR_UIF)
+	{
+		TIM6->SR &= ~TIM_SR_UIF; // Clear the update interrupt flag
+		scheduler.Update();
+	}
+}
 
+extern "C" void TIM7_IRQHandler(void)
+{
+	uint32_t sr = TIM7->SR;
+	if (TIM7->SR & TIM_SR_UIF)
+	{
+		hpCounter.Update(sr);
+		sr &= ~TIM_SR_UIF; // Clear the update interrupt flag
+	}
+
+	TIM7->SR = sr;
+}
 

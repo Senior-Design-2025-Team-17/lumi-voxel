@@ -3,7 +3,7 @@
  * @author Aidan Orr
  * @brief Interface for the LP5890 LED driver
  * @version 0.1
- * 
+ *
  * @details References: https://www.ti.com/lit/ds/symlink/lp5890.pdf
  */
 #pragma once
@@ -17,8 +17,8 @@
 #include STM32_INCLUDE(STM32_PROCESSOR, hal_def.h)
 #include STM32_INCLUDE(STM32_PROCESSOR, hal_spi.h)
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cstdint>
 
 namespace LumiVoxel::Lp5890
@@ -42,10 +42,10 @@ class Driver
 	std::array<uint16_t, ledCount> blue  = { 0 };
 	float& brightness;
 
-	uint8_t globalBrightness = 7;
-	uint8_t redGroupBrightness = 255;
+	uint8_t globalBrightness     = 7;
+	uint8_t redGroupBrightness   = 255;
 	uint8_t greenGroupBrightness = 255;
-	uint8_t blueGroupBrightness = 255;
+	uint8_t blueGroupBrightness  = 255;
 
 	bool initialized = false;
 
@@ -75,21 +75,21 @@ class Driver
 	/**
 	 * @brief Initialize the LP5890 driver
 	 * @param hpc A reference to a high precision counter object
-	 * 
+	 *
 	 * @return bool true if initialization was successful or already initialized, false otherwise
 	 */
 	bool Init(HighPrecisionCounter& hpc)
 	{
 		if (initialized)
 			return true;
-	
+
 		// Initialize the LP5899 driver
 		if (!interface.Init(hpc))
 		{
 			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 Interface initialization failed");
 			return false;
 		}
-	
+
 		Lp5899::SpiControl spiControl{
 			.DisableSpiAutoReply = 0,
 			.DisableSpiSdo       = 0,
@@ -97,19 +97,19 @@ class Driver
 			.SpiResetTimeout     = 0,
 			.SpiWatchdogFailsafe = 0,
 		};
-	
-		if (!interface.TryWriteSpiControl(spiControl))
+
+		if (!interface.TryWriteSpiControl(spiControl, true))
 		{
 			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 SPI control write failed");
 			return false;
 		}
 
 		Lp5899::CcsiControl ccsiControl{
-			.CcsiDataRate = 0xD, // 10Mbps
+			.CcsiDataRate       = 0xD, // 10Mbps
 			.CcsiSpreadSpectrum = 0,
 		};
 
-		if (!interface.TryWriteCcsiControl(ccsiControl))
+		if (!interface.TryWriteCcsiControl(ccsiControl, true))
 		{
 			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 CCSI control write failed");
 			return false;
@@ -120,7 +120,7 @@ class Driver
 			.TxFifoClear = 0,
 		};
 
-		if (!interface.TryWriteTxFifoControl(txFifoControl))
+		if (!interface.TryWriteTxFifoControl(txFifoControl, true))
 		{
 			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 TX FIFO control write failed");
 			return false;
@@ -131,13 +131,11 @@ class Driver
 			.RxFifoClear = 0,
 		};
 
-		if (!interface.TryWriteRxFifoControl(rxFifoControl))
+		if (!interface.TryWriteRxFifoControl(rxFifoControl, true))
 		{
 			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 RX FIFO control write failed");
 			return false;
 		}
-
-
 	}
 
 	/// @brief Set the brightness of an LED and quantizes the color values
@@ -156,4 +154,4 @@ class Driver
 	}
 };
 
-} // namespace LumiVoxel
+} // namespace LumiVoxel::Lp5890
