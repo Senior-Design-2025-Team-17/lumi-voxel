@@ -90,36 +90,25 @@ class Driver
 			return false;
 		}
 
-		Lp5899::SpiControl spiControl{
-			.DisableSpiAutoReply = 0,
-			.DisableSpiSdo       = 0,
-			.CrcAlgorithm        = 1,
-			.SpiResetTimeout     = 0,
-			.SpiWatchdogFailsafe = 0,
-		};
-
-		if (!interface.TryWriteSpiControl(spiControl, true))
-		{
-			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 SPI control write failed");
-			return false;
-		}
-
 		Lp5899::CcsiControl ccsiControl{
 			.CcsiDataRate       = 0xD, // 10Mbps
 			.CcsiSpreadSpectrum = 0,
 		};
 
+		puts("LP5890 - Setting LP5899 CCSI control register...");
 		if (!interface.TryWriteCcsiControl(ccsiControl, true))
 		{
 			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 CCSI control write failed");
 			return false;
 		}
 
+		
 		Lp5899::TxFifoControl txFifoControl{
 			.TxFifoLevel = 0x1FF, // 512 words
 			.TxFifoClear = 0,
 		};
-
+		
+		puts("LP5890 - Setting LP5899 TX FIFO control register...");
 		if (!interface.TryWriteTxFifoControl(txFifoControl, true))
 		{
 			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 TX FIFO control write failed");
@@ -131,11 +120,14 @@ class Driver
 			.RxFifoClear = 0,
 		};
 
+		puts("LP5890 - Setting LP5899 RX FIFO control register...");
 		if (!interface.TryWriteRxFifoControl(rxFifoControl, true))
 		{
 			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 RX FIFO control write failed");
 			return false;
 		}
+
+		return true;
 	}
 
 	/// @brief Set the brightness of an LED and quantizes the color values

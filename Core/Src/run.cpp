@@ -45,7 +45,7 @@ Scheduler scheduler(TIM6, 500, 32, 500 * 60);
 HighPrecisionCounter hpCounter(TIM7, 10000);
 
 Lp5899 if1 __attribute__((section(".dtcmram"))) (&hspi2, GpioPin(SPI2_NSS_GPIO_Port, SPI2_NSS_Pin));
-// Lp5899 if2 __attribute__((section(".dtcmram"))) (&hspi3);
+Lp5899 if2 __attribute__((section(".dtcmram"))) (&hspi3, GpioPin(SPI3_NSS_GPIO_Port, SPI3_NSS_Pin));
 
 Lp5890::Driver<numLeds / 2> ledDriver1 __attribute__((section(".dtcmram"))) (if1, brightness);
 // Lp5890::Driver<numLeds / 2> ledDriver2 __attribute__((section(".dtcmram"))) (if2, brightness);
@@ -77,19 +77,34 @@ void setup()
 	// Enable the 3.8V and 2.8V regulators
 	REG_EN_GPIO_Port->BSRR = REG_EN_Pin;
 
+	puts("\nInitializing LP5899 1...");
 	if (if1.Init(hpCounter))
 		puts("LP5899 1 initialized successfully");
 	else
 	{
+		puts("LP5899 1 initialization failed");
 		ErrorMessage::PrintMessage();
 		Error_Handler();
 	}
 
+	// puts("\nInitializing LP5899 2...");
+	// if (if2.Init(hpCounter))
+	// 	puts("LP5899 2 initialized successfully");
+	// else
+	// {
+	// 	puts("LP5899 2 initialization failed");
+	// 	ErrorMessage::PrintMessage();
+	// 	Error_Handler();
+	// }
+
 	// Initialize the LP5890 LED driver 1
+	ErrorMessage::ClearMessage();
+	puts("\nInitializing LED driver 1...");
 	if (ledDriver1.Init(hpCounter))
 		puts("LED driver 1 initialized successfully");
 	else
 	{
+		puts("LED driver 1 initialization failed");
 		ErrorMessage::PrintMessage();
 		Error_Handler();
 	}

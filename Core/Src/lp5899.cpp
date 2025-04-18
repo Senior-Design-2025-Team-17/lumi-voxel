@@ -35,14 +35,15 @@ static void CrcFailErrorMessage(const char* startMsg, std::span<uint16_t> data, 
 
 static void FlushSPI(SPI_HandleTypeDef* spi, size_t extraReads = 4)
 {
-	while (HAL_SPIEx_FlushRxFifo(spi) != HAL_OK)
-	{}
-
 	for (size_t i = 0; i < extraReads; ++i)
 	{
-		uint8_t dummy = 0;
-		HAL_SPI_Transmit(spi, &dummy, sizeof(dummy), HAL_MAX_DELAY);
+		uint16_t dummyWrite = 0;
+		uint16_t dummyRead  = 0;
+		HAL_SPI_TransmitReceive(spi, (uint8_t*)&dummyWrite, (uint8_t*)&dummyRead, 1, HAL_MAX_DELAY);
 	}
+
+	while (HAL_SPIEx_FlushRxFifo(spi) != HAL_OK)
+	{}
 }
 
 bool Lp5899::Init(HighPrecisionCounter& hpc)
@@ -72,7 +73,7 @@ bool Lp5899::Init(HighPrecisionCounter& hpc)
 	int attempt      = 0;
 	while (!ready && hpc.GetCount() < maxTime)
 	{
-		FlushSPI(spi);
+		FlushSPI(spi, 32);
 
 		printf("Attempt %d\n", ++attempt);
 		HAL_Delay(1);
@@ -88,7 +89,7 @@ bool Lp5899::Init(HighPrecisionCounter& hpc)
 		puts("Soft reset successful");
 
 		uint16_t deviceId;
-		if (!TryReadRegisterInit(RegisterAddr::DEVID, deviceId) && deviceId != DEVICE_ID)
+		if (!TryReadRegisterInit(RegisterAddr::DEVID, deviceId) || deviceId != DEVICE_ID)
 		{
 			ErrorMessage::WrapMessage("LP5899 - Initialization failed: Device ID mismatch");
 			ErrorMessage::PrintMessage();
@@ -140,23 +141,23 @@ bool Lp5899::Init(HighPrecisionCounter& hpc)
 	return true;
 }
 
-bool Lp5899::TryReadRegisterInit(Lp5899::RegisterAddr reg, uint16_t& value)
+bool Lp5899::TryReadRegisterInit(Lp5899::RegisterAddr reg, uint16_t& value, bool checkCrc)
 {
-	FlushSPI(spi);
+	// FlushSPI(spi, 2);
 
 	uint16_t addr    = static_cast<uint16_t>(reg) << 6;
 	uint16_t command = static_cast<uint16_t>(CommandType::REG_RD) | addr;
 
 	std::array<uint16_t, 2> sendData = { command, 0xFFFF };
-	uint16_t crc0                    = CalculateCrc(std::span((uint8_t*)sendData.data(), 2));
-	sendData[1]                      = crc0;
+	std::array<uint16_t, 4> recvData = { 0, 0, 0xFFFF, 0xFFFF };
 
-	std::array<uint16_t, 2> recvData = { 0xAA, 0xAA };
+	uint16_t crc0 = CalculateCrc(std::span((uint8_t*)sendData.data(), 2));
+	sendData[1]   = crc0;
 
 	csPin.Reset();
 
-	HAL_StatusTypeDef status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), sizeof(sendData), 100);
-	HAL_StatusTypeDef status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(recvData.data()), sizeof(recvData), 100);
+	HAL_StatusTypeDef status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), sendData.size(), 100);
+	HAL_StatusTypeDef status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(recvData.data()), recvData.size(), 100);
 
 	csPin.Set();
 
@@ -164,6 +165,18 @@ bool Lp5899::TryReadRegisterInit(Lp5899::RegisterAddr reg, uint16_t& value)
 	{
 		ErrorMessage::SetMessage("LP5899 - Read Register failed: HAL SPI transmit/receive failed");
 		return false;
+	}
+
+	if (checkCrc)
+	{
+		uint16_t calculatedCrc1 = CalculateCrc(std::span((uint8_t*)&recvData[0], 2));
+		uint16_t crc1           = recvData[1];
+
+		if (calculatedCrc1 != crc1)
+		{
+			CrcFailErrorMessage("LP5899 - Read Register failed", recvData, calculatedCrc1, crc1);
+			return false;
+		}
 	}
 
 	value = recvData[0];
@@ -183,19 +196,23 @@ bool Lp5899::TryReadRegister(Lp5899::RegisterAddr reg, uint16_t& value, bool che
 	uint16_t addr    = static_cast<uint16_t>(reg) << 6;
 	uint16_t command = static_cast<uint16_t>(checkCrc ? CommandType::REG_RD_CRC : CommandType::REG_RD) | addr;
 
-	std::array<uint16_t, 4> sendData = { command, 0xFF, 0, 0 };
-	uint16_t crc0                    = CalculateCrc(std::span((uint8_t*)sendData.data(), 2));
-	sendData[2]                      = crc0;
+	std::array<uint16_t, 2> sendData = {
+		command,
+		0xFFFF,
+	};
+	std::array<uint16_t, 4> recvData = { 0x0000, 0x0000, 0xFFFF, 0xFFFF };
 
-	std::array<uint16_t, 4> recvData = { 0, 0, 0xFF, 0xFF };
+	uint16_t crc0 = CalculateCrc(std::span((uint8_t*)sendData.data(), 2));
+	sendData[2]   = crc0;
 
 	csPin.Reset();
 
-	HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(spi, reinterpret_cast<uint8_t*>(sendData.data()), reinterpret_cast<uint8_t*>(recvData.data()), sizeof(sendData), HAL_MAX_DELAY);
+	HAL_StatusTypeDef status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), sendData.size(), HAL_MAX_DELAY);
+	HAL_StatusTypeDef status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(recvData.data()), recvData.size(), HAL_MAX_DELAY);
 
 	csPin.Set();
 
-	if (status != HAL_OK)
+	if (status1 != HAL_OK || status2 != HAL_OK)
 	{
 		ErrorMessage::SetMessage("LP5899 - Read Register failed: HAL SPI transmit/receive failed");
 		return false;
@@ -203,8 +220,8 @@ bool Lp5899::TryReadRegister(Lp5899::RegisterAddr reg, uint16_t& value, bool che
 
 	if (checkCrc)
 	{
-		uint16_t calculatedCrc1 = CalculateCrc(std::span((uint8_t*)&recvData[2], 2));
-		uint16_t crc1 = recvData[3];
+		uint16_t calculatedCrc1 = CalculateCrc(std::span((uint8_t*)&recvData[0], 2));
+		uint16_t crc1           = recvData[1];
 
 		if (calculatedCrc1 != crc1)
 		{
@@ -230,15 +247,20 @@ bool Lp5899::TryWriteRegister(Lp5899::RegisterAddr reg, uint16_t value, bool che
 	uint16_t addr    = static_cast<uint16_t>(reg) << 6;
 	uint16_t command = static_cast<uint16_t>(checkCrc ? CommandType::REG_WR_CRC : CommandType::REG_WR) | addr;
 
-	std::array<uint16_t, 5> sendData = { command, value, 0xFF, 0, 0 };
-	uint16_t crc0                    = CalculateCrc(std::span((uint8_t*)sendData.data(), 4));
-	sendData[2]                      = crc0;
+	std::array<uint16_t, 3> sendData = { command, value, 0xFFFF };
+	std::array<uint16_t, 4> recvData = { 0x0000, 0x0000, 0xFFFF, 0xFFFF };
 
-	std::array<uint16_t, 5> recvData = { 0, 0, 0, 0xFF, 0xFF };
+	uint16_t crc0 = CalculateCrc(std::span((uint8_t*)sendData.data(), 4));
+	sendData[2]   = crc0;
 
-	HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(spi, reinterpret_cast<uint8_t*>(sendData.data()), reinterpret_cast<uint8_t*>(recvData.data()), sizeof(sendData), HAL_MAX_DELAY);
+	csPin.Reset();
 
-	if (status != HAL_OK)
+	HAL_StatusTypeDef status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), sendData.size(), HAL_MAX_DELAY);
+	HAL_StatusTypeDef status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(recvData.data()), recvData.size(), HAL_MAX_DELAY);
+
+	csPin.Set();
+
+	if (status1 != HAL_OK || status2 != HAL_OK)
 	{
 		ErrorMessage::SetMessage("LP5899 - Write Register failed: HAL SPI transmit/receive failed");
 		return false;
@@ -246,8 +268,8 @@ bool Lp5899::TryWriteRegister(Lp5899::RegisterAddr reg, uint16_t value, bool che
 
 	if (checkCrc)
 	{
-		uint16_t calculatedCrc1 = CalculateCrc(std::span((uint8_t*)&recvData[3], 2));
-		uint16_t crc1 = recvData[4];
+		uint16_t calculatedCrc1 = CalculateCrc(std::span((uint8_t*)&recvData[0], 2));
+		uint16_t crc1           = recvData[1];
 
 		if (calculatedCrc1 != crc1)
 		{
@@ -259,41 +281,63 @@ bool Lp5899::TryWriteRegister(Lp5899::RegisterAddr reg, uint16_t value, bool che
 	return true;
 }
 
-bool Lp5899::TryWriteRegisterInit(Lp5899::RegisterAddr reg, uint16_t value)
+bool Lp5899::TryWriteRegisterInit(Lp5899::RegisterAddr reg, uint16_t value, bool checkCrc)
 {
 	FlushSPI(spi);
 
 	uint16_t addr    = static_cast<uint16_t>(reg) << 6;
 	uint16_t command = static_cast<uint16_t>(CommandType::REG_WR) | addr;
 
-	std::array<uint16_t, 5> sendData = { command, value, 0xFF, 0, 0 };
-	uint16_t crc0                    = CalculateCrc(std::span((uint8_t*)sendData.data(), 4));
-	sendData[2]                      = crc0;
+	std::array<uint16_t, 3> sendData = { command, value, 0xFF };
+	std::array<uint16_t, 4> recvData = { 0xFFFF, 0xFFFF };
 
-	std::array<uint16_t, 5> recvData = { 0, 0, 0, 0xFF, 0xFF };
+	uint16_t crc0 = CalculateCrc(std::span((uint8_t*)sendData.data(), 4));
+	sendData[2]   = crc0;
 
-	HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(spi, reinterpret_cast<uint8_t*>(sendData.data()), reinterpret_cast<uint8_t*>(recvData.data()), sizeof(sendData), HAL_MAX_DELAY);
+	csPin.Reset();
 
-	if (status != HAL_OK)
+	HAL_StatusTypeDef status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), sendData.size(), HAL_MAX_DELAY);
+	HAL_StatusTypeDef status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(recvData.data()), recvData.size(), HAL_MAX_DELAY);
+
+	csPin.Set();
+
+	if (status1 != HAL_OK || status2 != HAL_OK)
 	{
 		ErrorMessage::SetMessage("LP5899 - Write Register failed: HAL SPI transmit/receive failed");
 		return false;
 	}
+
+	if (checkCrc)
+	{
+		uint16_t calculatedCrc1 = CalculateCrc(std::span((uint8_t*)&recvData[0], 2));
+		uint16_t crc1           = recvData[1];
+
+		if (calculatedCrc1 != crc1)
+		{
+			CrcFailErrorMessage("LP5899 - Write Register failed", recvData, calculatedCrc1, crc1);
+			return false;
+		}
+	}
+
+	GlobalStatus statusRegister;
+	statusRegister.Value = recvData[0];
 
 	return true;
 }
 
 bool Lp5899::TrySoftReset()
 {
+	puts("Soft Resetting LP5899...");
+
 	std::array<uint16_t, 2> sendData = { 0xE1E1, 0xD383 };
-	std::array<uint16_t, 2> recvData = { 0xAAAA, 0xAAAA };
+	std::array<uint16_t, 4> recvData = { 0xAAAA, 0xAAAA, 0, 0 };
 
 	FlushSPI(spi);
 
 	csPin.Reset();
 	// HAL_Delay(1000);
-	HAL_StatusTypeDef status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), sizeof(sendData), 100);
-	HAL_StatusTypeDef status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(recvData.data()), sizeof(recvData), 100);
+	HAL_StatusTypeDef status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), sendData.size(), 100);
+	HAL_StatusTypeDef status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(recvData.data()), recvData.size(), 100);
 	// HAL_Delay(1000);
 	csPin.Set();
 
@@ -304,17 +348,17 @@ bool Lp5899::TrySoftReset()
 	}
 
 	GlobalStatus statusRegister;
-	statusRegister.Value = recvData[2];
+	statusRegister.Value = recvData[0];
 
-	uint16_t crc  = CalculateCrc(std::span((uint8_t*)&recvData[2], 2));
-	uint16_t crc1 = recvData[3]; //(((recvData[3] & 0xFF) << 8) | (recvData[3] >> 8));
+	uint16_t crc  = CalculateCrc(std::span((uint8_t*)&recvData[0], 2));
+	uint16_t crc1 = recvData[1];
 	if (crc != crc1)
 	{
 		CrcFailErrorMessage("LP5899 - Soft Reset failed", recvData, crc, crc1);
 		return false;
 	}
 
-	puts("CRC Match");
+	puts("Soft Reset - Status CRC Match");
 
 	if (statusRegister.DeviceState == 0x3)
 	{
@@ -323,19 +367,29 @@ bool Lp5899::TrySoftReset()
 		return false;
 	}
 
-	puts("Device in normal state");
+	puts("Soft Reset - Device in normal state");
+
+	statusRegister            = { .Value = 0 };
+	statusRegister.ClearFlags = 1;
+
+	if (!TryWriteRegisterInit(RegisterAddr::STATUS, statusRegister.Value, true))
+	{
+		ErrorMessage::WrapMessage("LP5899 - Soft Reset failed: Failed to clear status register");
+		return false;
+	}
 
 	SpiControl spiControl          = { .Value = 0 };
 	spiControl.SpiResetTimeout     = 0x0;
 	spiControl.SpiWatchdogFailsafe = 0x3;
+	spiControl.CrcAlgorithm        = 0;
 
-	if (!TryWriteRegisterInit(RegisterAddr::SPICTRL, spiControl.Value))
+	if (!TryWriteRegisterInit(RegisterAddr::SPICTRL, spiControl.Value, true))
 	{
-		ErrorMessage::SetMessage("LP5899 - Soft Reset failed: Failed to write SPI control register");
+		ErrorMessage::WrapMessage("LP5899 - Soft Reset failed: Failed to write SPI control register");
 		return false;
 	}
 
-	puts("SPI control register written successfully");
+	puts("Soft Reset - SPI control register written successfully");
 
 	return true;
 }

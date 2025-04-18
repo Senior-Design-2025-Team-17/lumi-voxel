@@ -72,6 +72,11 @@ class Lp5899
 		return table;
 	}();
 
+	static constexpr uint16_t revWord(uint16_t x)
+	{
+		return ((x >> 8) & 0xFF) | (x << 8);
+	}
+
 	static uint16_t CalculateCrc(std::span<uint8_t> data)
 	{
 		constexpr int n         = 16;
@@ -81,7 +86,9 @@ class Lp5899
 
 		for (size_t i = 0; i < data.size(); ++i)
 		{
-			rem ^= ((uint32_t)data[i]) << (n - 8);
+			uint8_t v = (i % 2 == 0) ? data[i + 1] : data[i - 1]; // Awful hack
+
+			rem ^= ((uint32_t)v) << (n - 8);
 			for (size_t j = 0; j < 8; ++j)
 			{
 				if ((rem & 0x8000) != 0)
@@ -94,8 +101,8 @@ class Lp5899
 		return (uint16_t)rem;
 	}
 
-	bool TryReadRegisterInit(RegisterAddr reg, uint16_t& value);
-	bool TryWriteRegisterInit(RegisterAddr reg, uint16_t value);
+	bool TryReadRegisterInit(RegisterAddr reg, uint16_t& value, bool checkCrc = true);
+	bool TryWriteRegisterInit(RegisterAddr reg, uint16_t value, bool checkCrc = true);
 
   public:
 	union SpiControl
