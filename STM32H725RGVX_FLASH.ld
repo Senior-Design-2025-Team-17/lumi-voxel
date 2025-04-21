@@ -73,8 +73,8 @@ SECTIONS
   {
     . = ALIGN(4);
     _sitcmram = .;
-    *run.o(.text)
-    *run.o(.text*)
+    /* *run.o(.text)
+    *run.o(.text*) */
     *(.itcmram)
     *(.itcmram*)
     *(.ITCMRamFunc)

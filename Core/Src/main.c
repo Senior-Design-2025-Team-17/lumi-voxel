@@ -349,7 +349,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -393,24 +393,24 @@ static void MX_SPI3_Init(void)
   hspi3.Instance = SPI3;
   hspi3.Init.Mode = SPI_MODE_MASTER;
   hspi3.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi3.Init.DataSize = SPI_DATASIZE_16BIT;
   hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi3.Init.NSS = SPI_NSS_SOFT;
-  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
   hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi3.Init.CRCPolynomial = 0x0;
   hspi3.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
   hspi3.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
-  hspi3.Init.FifoThreshold = SPI_FIFO_THRESHOLD_08DATA;
+  hspi3.Init.FifoThreshold = SPI_FIFO_THRESHOLD_02DATA;
   hspi3.Init.TxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
   hspi3.Init.RxCRCInitializationPattern = SPI_CRC_INITIALIZATION_ALL_ZERO_PATTERN;
   hspi3.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_03CYCLE;
   hspi3.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_03CYCLE;
   hspi3.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
-  hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_ENABLE;
+  hspi3.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_DISABLE;
   hspi3.Init.IOSwap = SPI_IO_SWAP_DISABLE;
   if (HAL_SPI_Init(&hspi3) != HAL_OK)
   {
@@ -646,7 +646,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : BLE_EXTI_Pin */
   GPIO_InitStruct.Pin = BLE_EXTI_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(BLE_EXTI_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BLE_RESET_Pin */
@@ -656,17 +656,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(BLE_RESET_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SPI2_NSS_Pin SPI6_NSS_Pin */
-  GPIO_InitStruct.Pin = SPI2_NSS_Pin|SPI6_NSS_Pin;
+  /*Configure GPIO pin : SPI2_NSS_Pin */
+  GPIO_InitStruct.Pin = SPI2_NSS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(SPI2_NSS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SPI6_NSS_Pin */
+  GPIO_InitStruct.Pin = SPI6_NSS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(SPI6_NSS_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(BLE_EXTI_EXTI_IRQn, 4, 0);
-  HAL_NVIC_EnableIRQ(BLE_EXTI_EXTI_IRQn);
-
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 4, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 

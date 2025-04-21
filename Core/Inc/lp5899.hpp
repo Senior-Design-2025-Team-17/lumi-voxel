@@ -277,7 +277,17 @@ class Lp5899
 	 */
 	bool Init(HighPrecisionCounter& hpc);
 
-	bool TrySendCommand(uint16_t command, std::span<uint8_t> data);
+	/**
+	 * @brief Forward data from the LP5899 device
+	 * 
+	 * @param data The data to forward from the device
+	 * @param bufferData Whether to buffer the data in the TX FIFO before forwarding
+	 * @param checkCrc Whether to check the CRC of the return data
+	 * @return bool true if the data was forwarded successfully, false otherwise
+	 */
+	bool TryForwardWriteData(std::span<uint16_t> data, bool bufferData = true, bool checkCrc = true);
+
+	bool TryForwardReadData(std::span<uint16_t> txData, std::span<uint16_t> rxData, bool bufferData = true, bool checkCrc = true);
 
 	bool TryReadRegister(RegisterAddr reg, uint16_t& value, bool crc = false);
 	bool TryReadRegisterMultiple(RegisterAddr startAddr, size_t count, std::span<uint16_t> values, bool crc = false);

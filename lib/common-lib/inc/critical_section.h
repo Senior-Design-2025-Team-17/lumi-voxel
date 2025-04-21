@@ -18,7 +18,7 @@
  * 
  * @return `uint32_t` The previous PRIMASK value, which can be used to restore the previous interrupt state
  */
-static inline uint32_t EnterCriticalSection()
+static __always_inline uint32_t EnterCriticalSection()
 {
 	uint32_t primask = __get_PRIMASK();
 	__disable_irq();
@@ -30,7 +30,7 @@ static inline uint32_t EnterCriticalSection()
  * 
  * @param primask The previous PRIMASK value
  */
-static inline void ExitCriticalSection(uint32_t primask)
+static __always_inline void ExitCriticalSection(uint32_t primask)
 {
 	__set_PRIMASK(primask);
 }
