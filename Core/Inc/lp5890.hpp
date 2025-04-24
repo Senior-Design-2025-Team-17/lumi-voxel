@@ -3,7 +3,7 @@
  * @author Aidan Orr
  * @brief Interface for the LP5890 LED driver
  * @version 0.1
- * 
+ *
  * @details References: https://www.ti.com/lit/ds/symlink/lp5890.pdf
  */
 #pragma once
@@ -17,8 +17,8 @@
 #include STM32_INCLUDE(STM32_PROCESSOR, hal_def.h)
 #include STM32_INCLUDE(STM32_PROCESSOR, hal_spi.h)
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cstdint>
 
 namespace LumiVoxel::Lp5890
@@ -29,23 +29,32 @@ namespace LumiVoxel::Lp5890
  *
  * @tparam ledCount Number of LEDs connected to the driver
  */
-template <size_t ledCount>
 class Driver
 {
   public:
 	static constexpr uint16_t ColorMax = 65535;
+	static constexpr uint16_t ColorMin = 0;
+	static constexpr size_t LedCount   = 256;
+
+	static constexpr uint16_t CcsiClock = 0xA; ///< @brief CCSI clock rate (5MHz)
 
   private:
 	Lp5899& interface;
-	std::array<uint16_t, ledCount> red   = { 0 };
-	std::array<uint16_t, ledCount> green = { 0 };
-	std::array<uint16_t, ledCount> blue  = { 0 };
+	std::array<uint16_t, LedCount> red   = { 0 };
+	std::array<uint16_t, LedCount> green = { 0 };
+	std::array<uint16_t, LedCount> blue  = { 0 };
 	float& brightness;
 
-	uint8_t globalBrightness = 7;
-	uint8_t redGroupBrightness = 255;
+	uint8_t globalBrightness     = 7;
+	uint8_t redGroupBrightness   = 255;
 	uint8_t greenGroupBrightness = 255;
-	uint8_t blueGroupBrightness = 255;
+	uint8_t blueGroupBrightness  = 255;
+
+	Lp5890::FC0& fc0Config;
+	Lp5890::FC1& fc1Config;
+	Lp5890::FC2& fc2Config;
+	Lp5890::FC3& fc3Config;
+	Lp5890::FC4& fc4Config;
 
 	bool initialized = false;
 
@@ -54,8 +63,8 @@ class Driver
 	/// @return The quantized color value (0-ColorMax)
 	static uint16_t QuantizeColor(float color)
 	{
-		float v = color * ColorMax;
-		return std::clamp((uint16_t)v, (uint16_t)0, ColorMax);
+		float v = color * (ColorMax - ColorMin) + ColorMin;
+		return std::clamp((uint16_t)v, (uint16_t)ColorMin, ColorMax);
 	}
 
   public:
@@ -67,93 +76,54 @@ class Driver
 	 */
 	constexpr Driver(
 		Lp5899& interface,
-		float& brightness)
+		float& brightness,
+		Lp5890::FC0& fc0,
+		Lp5890::FC1& fc1,
+		Lp5890::FC2& fc2,
+		Lp5890::FC3& fc3,
+		Lp5890::FC4& fc4)
 		: interface(interface),
-		  brightness(brightness)
+		  brightness(brightness),
+		  fc0Config(fc0),
+		  fc1Config(fc1),
+		  fc2Config(fc2),
+		  fc3Config(fc3),
+		  fc4Config(fc4)
 	{}
 
 	/**
 	 * @brief Initialize the LP5890 driver
 	 * @param hpc A reference to a high precision counter object
-	 * 
+	 *
 	 * @return bool true if initialization was successful or already initialized, false otherwise
 	 */
-	bool Init(HighPrecisionCounter& hpc)
-	{
-		if (initialized)
-			return true;
-	
-		// Initialize the LP5899 driver
-		if (!interface.Init(hpc))
-		{
-			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 Interface initialization failed");
-			return false;
-		}
-	
-		Lp5899::SpiControl spiControl{
-			.DisableSpiAutoReply = 0,
-			.DisableSpiSdo       = 0,
-			.CrcAlgorithm        = 1,
-			.SpiResetTimeout     = 0,
-			.SpiWatchdogFailsafe = 0,
-		};
-	
-		if (!interface.TryWriteSpiControl(spiControl))
-		{
-			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 SPI control write failed");
-			return false;
-		}
-
-		Lp5899::CcsiControl ccsiControl{
-			.CcsiDataRate = 0xD, // 10Mbps
-			.CcsiSpreadSpectrum = 0,
-		};
-
-		if (!interface.TryWriteCcsiControl(ccsiControl))
-		{
-			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 CCSI control write failed");
-			return false;
-		}
-
-		Lp5899::TxFifoControl txFifoControl{
-			.TxFifoLevel = 0x1FF, // 512 words
-			.TxFifoClear = 0,
-		};
-
-		if (!interface.TryWriteTxFifoControl(txFifoControl))
-		{
-			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 TX FIFO control write failed");
-			return false;
-		}
-
-		Lp5899::RxFifoControl rxFifoControl{
-			.RxFifoLevel = 0x1FF, // 512 words
-			.RxFifoClear = 0,
-		};
-
-		if (!interface.TryWriteRxFifoControl(rxFifoControl))
-		{
-			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5899 RX FIFO control write failed");
-			return false;
-		}
-
-
-	}
+	bool Init(HighPrecisionCounter& hpc);
 
 	/// @brief Set the brightness of an LED and quantizes the color values
-	/// @param index The index of the LED to set (0-ledCount-1)
+	/// @param index The index of the LED to set (0-LedCount-1)
 	/// @param red The brightness of the red channel (0.0-1.0)
 	/// @param green The brightness of the green channel (0.0-1.0)
 	/// @param blue The brightness of the blue channel (0.0-1.0)
 	void SetColor(size_t index, float red, float green, float blue)
 	{
-		if (index >= ledCount)
+		if (index >= LedCount)
 			return;
 
 		this->red[index]   = QuantizeColor(red * brightness);
 		this->green[index] = QuantizeColor(green * brightness);
 		this->blue[index]  = QuantizeColor(blue * brightness);
 	}
+
+	void FillColors(float r, float g, float b)
+	{
+		red.fill(QuantizeColor(r * brightness));
+		green.fill(QuantizeColor(g * brightness));
+		blue.fill(QuantizeColor(b * brightness));
+	}
+
+	bool TryWriteColors();
+
+	bool TrySendVsync();
 };
 
-} // namespace LumiVoxel
+} // namespace LumiVoxel::Lp5890

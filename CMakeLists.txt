@@ -18,5 +18,5 @@ add_custom_command(
     COMMAND ${CMAKE_STRIP} -S -R .ARM.attributes -R .comment -o ${PROJECT_NAME}.stripped $<TARGET_FILE:${PROJECT_NAME}>
     COMMAND ${CMAKE_SIZE} -A ${PROJECT_NAME}.stripped
     COMMAND ${CMAKE_SIZE} ${PROJECT_NAME}.stripped
-    COMMAND arm-none-eabi-readelf -l ${PROJECT_NAME}.elf > ${PROJECT_NAME}.readelf
+    COMMAND ${CMAKE_READELF} -l ${PROJECT_NAME}.elf > ${PROJECT_NAME}.readelf
 )

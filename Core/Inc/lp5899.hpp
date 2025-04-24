@@ -3,7 +3,7 @@
  * @author Aidan Orr
  * @brief Interface for the LP5899 inteface IC
  * @version 0.1
- * 
+ *
  * @details References: https://www.ti.com/lit/ds/symlink/lp5899.pdf
  *
  * @copyright Copyright (c) 2025
@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include "gpio_pin.hpp"
 #include "high_precision_counter.hpp"
 
 #include "stm32_includer.h"
@@ -30,7 +31,7 @@ class Lp5899
 {
 	enum struct CommandType : uint16_t
 	{
-		FWD_WR_CRC   = 0x2 << 12, ///< @brief Forward write CRC
+		FWD_WR_CRC     = 0x2 << 12, ///< @brief Forward write CRC
 		FWD_WR         = 0x3 << 12, ///< @brief Forward write
 		FWD_WR_END_CRC = 0x4 << 12, ///< @brief Forward write CRC with END bytes command
 		FWD_WR_END     = 0x5 << 12, ///< @brief Forward write with END bytes command
@@ -60,16 +61,48 @@ class Lp5899
 		RXFFST   = 0xA, ///< @brief Detail reception FIFO status
 	};
 
-	SPI_HandleTypeDef* const spi;
+	SPI_HandleTypeDef* const spi; ///< @brief Pointer to the SPI handle
+	GpioPin csPin;                ///< @brief Chip select pin for the SPI interface
 
 	bool initialized = false;
 
-	static uint16_t CalculateCrc(std::span<uint16_t> data)
+	static constexpr std::array<uint16_t, 256> ccittFalseCrcTable = []() {
+		std::array<uint16_t, 256> table = { 0 };
+
+		return table;
+	}();
+
+	static constexpr uint16_t revWord(uint16_t x)
 	{
-		return 0; // TODO: Implement CRC calculation
+		return ((x >> 8) & 0xFF) | (x << 8);
 	}
 
-	bool TryReadRegisterInit(RegisterAddr reg, uint16_t& value);
+	static uint16_t CalculateCrc(std::span<uint8_t> data)
+	{
+		constexpr int n         = 16;
+		constexpr uint16_t poly = 0x1021;
+
+		uint32_t rem = 0xFFFF;
+
+		for (size_t i = 0; i < data.size(); ++i)
+		{
+			uint8_t v = (i % 2 == 0) ? data[i + 1] : data[i - 1]; // Awful hack
+
+			rem ^= ((uint32_t)v) << (n - 8);
+			for (size_t j = 0; j < 8; ++j)
+			{
+				if ((rem & 0x8000) != 0)
+					rem = (rem << 1) ^ poly;
+				else
+					rem <<= 1;
+			}
+		}
+
+		return (uint16_t)rem;
+	}
+
+	bool TryReadRegisterInit(RegisterAddr reg, uint16_t& value, bool checkCrc = true);
+	bool TryWriteRegisterInit(RegisterAddr reg, uint16_t value, bool checkCrc = true);
 
   public:
 	union SpiControl
@@ -231,8 +264,9 @@ class Lp5899
 	 * @brief Construct a new Lp5899 object
 	 *
 	 * @param spi A pointer to the SPI handle
+	 * @param csPin The chip select pin for the SPI interface
 	 */
-	Lp5899(SPI_HandleTypeDef* spi) : spi(spi)
+	Lp5899(SPI_HandleTypeDef* spi, GpioPin csPin) : spi(spi), csPin(csPin)
 	{}
 
 	/**
@@ -243,12 +277,22 @@ class Lp5899
 	 */
 	bool Init(HighPrecisionCounter& hpc);
 
-	bool TrySendCommand(uint16_t command, std::span<uint8_t> data);
+	/**
+	 * @brief Forward data from the LP5899 device
+	 * 
+	 * @param data The data to forward from the device
+	 * @param bufferData Whether to buffer the data in the TX FIFO before forwarding
+	 * @param checkCrc Whether to check the CRC of the return data
+	 * @return bool true if the data was forwarded successfully, false otherwise
+	 */
+	bool TryForwardWriteData(std::span<uint16_t> data, bool bufferData = true, bool checkCrc = true);
+
+	bool TryForwardReadData(std::span<uint16_t> txData, std::span<uint16_t> rxData, size_t extraEndBytes = 0, bool bufferData = true, bool checkCrc = true);
 
 	bool TryReadRegister(RegisterAddr reg, uint16_t& value, bool crc = false);
-	bool TryReadRegisterMultiple(RegisterAddr startAddr, size_t count, std::span<uint16_t> values, bool crc = false);
+	// bool TryReadRegisterMultiple(RegisterAddr startAddr, size_t count, std::span<uint16_t> values, bool crc = false);
 	bool TryWriteRegister(RegisterAddr reg, uint16_t value, bool crc = false);
-	bool TryWriteRegisterMultiple(RegisterAddr startAddr, size_t count, std::span<uint16_t> values, bool crc = false);
+	// bool TryWriteRegisterMultiple(RegisterAddr startAddr, size_t count, std::span<uint16_t> values, bool crc = false);
 
 	bool TryReadDeviceId(uint16_t& deviceId, bool crc = false) { return TryReadRegister(RegisterAddr::DEVID, deviceId, crc); }
 
@@ -277,6 +321,7 @@ class Lp5899
 	bool TryReadTransmissionFifoStatus(TransmissionFifoStatus& transmissionFifoStatus, bool crc = false) { return TryReadRegister(RegisterAddr::TXFFST, transmissionFifoStatus.Value, crc); }
 	bool TryReadReceptionFifoStatus(ReceptionFifoStatus& receptionFifoStatus, bool crc = false) { return TryReadRegister(RegisterAddr::RXFFST, receptionFifoStatus.Value, crc); }
 
+	bool TrySoftReset();
 }; // class Lp5899
 
 } // namespace LumiVoxel
