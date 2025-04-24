@@ -44,10 +44,10 @@ float brightness;
 Scheduler scheduler(TIM6, 500, 32, 500 * 60);
 HighPrecisionCounter hpCounter(TIM7, 10000);
 
-Lp5899 if1 __attribute__((section(".dtcmram"))) (&hspi2, GpioPin(SPI2_NSS_GPIO_Port, SPI2_NSS_Pin));
+//Lp5899 if1 __attribute__((section(".dtcmram"))) (&hspi2, GpioPin(SPI2_NSS_GPIO_Port, SPI2_NSS_Pin));
 // Lp5899 if2 __attribute__((section(".dtcmram"))) (&hspi3);
 
-Lp5890::Driver<numLeds / 2> ledDriver1 __attribute__((section(".dtcmram"))) (if1, brightness);
+//Lp5890::Driver<numLeds / 2> ledDriver1 __attribute__((section(".dtcmram"))) (if1, brightness);
 // Lp5890::Driver<numLeds / 2> ledDriver2 __attribute__((section(".dtcmram"))) (if2, brightness);
 
 void setup()

@@ -37,10 +37,11 @@
 
 tBleStatus Add_Sample_Service(void);
 tBleStatus Add_Triangle_Mesh_Service(void);
-tBleStatus Add_Triangle_transform_Service(void);
+tBleStatus Add_Transform_Service(void);
 void APP_UserEvtRx(void *pData);
 
 extern uint16_t sampleServHandle, TXCharHandle, RXCharHandle;
 extern uint16_t TrianglemeshServHandle, TrianglemeshTxCharHandle, TriangleMeshRxCharHandle;
+extern uint16_t TranformServHandle, TranformTxCharHandle, TranformRxCharHandle;
 
 #endif /* GATT_DB_H */

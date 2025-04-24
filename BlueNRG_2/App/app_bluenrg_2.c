@@ -59,7 +59,8 @@ static discoveryContext_t discovery;
 volatile int app_flags = SET_CONNECTABLE;
 volatile uint16_t connection_handle = 0;
 extern uint16_t sampleServHandle, sampleTXCharHandle, sampleRXCharHandle;
-extern uint16_t TrianglemeshServHandle, TrianglemeshTxCharHandle, TriangleMeshRxCharHandle;
+extern uint16_t TrianglemeshServHandle, TrianglemeshTxCharHandle, TriangleMeshRxVertsCharHandle,TriangleMeshRxTrisCharHandle,TriangleMeshRxReadyCharHandle;
+extern uint16_t TransformServHandle, TransformTxCharHandle, TransformRxArrCharHandle,TransformRxReadyCharHandle;
 
 /* UUIDs */
 UUID_t UUID_Tx;
@@ -158,6 +159,64 @@ void MX_BlueNRG_2_Process(void)
   /* USER CODE END BlueNRG_2_Process_PostTreatment */
 }
 
+
+static void sendTransformData(uint8_t* data_buffer, uint8_t Nb_bytes)
+{
+	uint32_t tickstart = HAL_GetTick();
+	if(device_role == SLAVE_ROLE)
+	  {
+	    while(aci_gatt_update_char_value_ext(connection_handle,
+	    									 TransformServHandle,
+											 TransformTxCharHandle,
+	                                         1, Nb_bytes, 0 ,Nb_bytes, data_buffer) == BLE_STATUS_INSUFFICIENT_RESOURCES)
+	    {
+	      APP_FLAG_SET(TX_BUFFER_FULL);
+	      while(APP_FLAG(TX_BUFFER_FULL)) {
+	        hci_user_evt_proc();
+	        // Radio is busy (buffer full).
+	        if ((HAL_GetTick() - tickstart) > (10*HCI_DEFAULT_TIMEOUT_MS)) break;
+	      }
+	    }
+	  }
+	  else
+	  {
+	    while(aci_gatt_write_without_resp(connection_handle, rx_handle+1, Nb_bytes, data_buffer)==BLE_STATUS_NOT_ALLOWED)
+	    {
+	      hci_user_evt_proc();
+	      // Radio is busy (buffer full).
+	      if ((HAL_GetTick() - tickstart) > (10*HCI_DEFAULT_TIMEOUT_MS)) break;
+	    }
+	  }
+}
+static void sendTriangleMeshData(uint8_t* data_buffer, uint8_t Nb_bytes)
+{
+	uint32_t tickstart = HAL_GetTick();
+	if(device_role == SLAVE_ROLE)
+	  {
+	    while(aci_gatt_update_char_value_ext(connection_handle,
+	    									 TrianglemeshServHandle,
+											 TrianglemeshTxCharHandle,
+	                                         1, Nb_bytes, 0 ,Nb_bytes, data_buffer) == BLE_STATUS_INSUFFICIENT_RESOURCES)
+	    {
+	      APP_FLAG_SET(TX_BUFFER_FULL);
+	      while(APP_FLAG(TX_BUFFER_FULL)) {
+	        hci_user_evt_proc();
+	        // Radio is busy (buffer full).
+	        if ((HAL_GetTick() - tickstart) > (10*HCI_DEFAULT_TIMEOUT_MS)) break;
+	      }
+	    }
+	  }
+	  else
+	  {
+	    while(aci_gatt_write_without_resp(connection_handle, rx_handle+1, Nb_bytes, data_buffer)==BLE_STATUS_NOT_ALLOWED)
+	    {
+	      hci_user_evt_proc();
+	      // Radio is busy (buffer full).
+	      if ((HAL_GetTick() - tickstart) > (10*HCI_DEFAULT_TIMEOUT_MS)) break;
+	    }
+	  }
+}
+
 /**
  * @brief  This function is used to send data related to the sample service
  *         (to be sent over the air to the remote board).
@@ -171,18 +230,6 @@ static void sendData(uint8_t* data_buffer, uint8_t Nb_bytes)
 
   if(device_role == SLAVE_ROLE)
   {
-    while(aci_gatt_update_char_value_ext(connection_handle,
-    									 TrianglemeshServHandle,
-										 TrianglemeshTxCharHandle,
-                                         1, Nb_bytes, 0 ,Nb_bytes, data_buffer) == BLE_STATUS_INSUFFICIENT_RESOURCES)
-    {
-      APP_FLAG_SET(TX_BUFFER_FULL);
-      while(APP_FLAG(TX_BUFFER_FULL)) {
-        hci_user_evt_proc();
-        // Radio is busy (buffer full).
-        if ((HAL_GetTick() - tickstart) > (10*HCI_DEFAULT_TIMEOUT_MS)) break;
-      }
-    }
     while(aci_gatt_update_char_value_ext(connection_handle,
     									 sampleServHandle,
 										 sampleTXCharHandle,
@@ -214,7 +261,7 @@ static void sendData(uint8_t* data_buffer, uint8_t Nb_bytes)
  * @param  Nb_bytes : number of bytes to be received
  * @retval None
  */
-static void receiveData(uint8_t* data_buffer, uint8_t Nb_bytes)
+static void receiveSampleData(uint8_t* data_buffer, uint8_t Nb_bytes)
 {
   BSP_LED_Toggle(LED2);
 
@@ -225,16 +272,22 @@ static void receiveData(uint8_t* data_buffer, uint8_t Nb_bytes)
   fflush(stdout);
 }
 
-/**
- * @brief  This function is used to receive data related to the sample service
- *         (received over the air from the remote board).
- * @param  data_buffer : pointer to store in received data
- * @param  Nb_bytes : number of bytes to be received
- * @retval None
- */
 static void receiveTriangleMesh(uint8_t* data_buffer, uint8_t Nb_bytes)
 {
   BSP_LED_Toggle(LED2);
+  PRINT_DBG("Received Triangle Mesh");
+
+  for(int i = 0; i < Nb_bytes; i++)
+  {
+    PRINT_DBG("%c", data_buffer[i]);
+  }
+  fflush(stdout);
+}
+
+static void receiveTransform(uint8_t* data_buffer, uint8_t Nb_bytes)
+{
+  BSP_LED_Toggle(LED2);
+  PRINT_DBG("Received Transform");
 
   for(int i = 0; i < Nb_bytes; i++)
   {
@@ -366,21 +419,19 @@ static uint8_t Find_DeviceName(uint8_t data_length, uint8_t *data_value)
 *******************************************************************************/
 static void Attribute_Modified_CB(uint16_t handle, uint8_t data_length, uint8_t *att_data)
 {
-  if(handle == TriangleMeshRxCharHandle + 1)
+  if(handle == TriangleMeshRxReadyCharHandle + 1)
   {
 	 receiveTriangleMesh(att_data, data_length);
   }
-  else if(handle == TrianglemeshTxCharHandle + 2)
+
+  if(handle == TransformRxReadyCharHandle + 1)
   {
-    if(att_data[0] == 0x01)
-    {
-      APP_FLAG_SET(NOTIFICATIONS_ENABLED);
-    }
+	 receiveTransform(att_data, data_length);
   }
 
   if(handle == sampleRXCharHandle + 1)
   {
-    receiveData(att_data, data_length);
+    receiveSampleData(att_data, data_length);
   }
   else if(handle == sampleTXCharHandle + 2)
   {
@@ -444,6 +495,13 @@ static uint8_t SampleAppInit(void)
   if(ret != BLE_STATUS_SUCCESS)
   {
     PRINT_DBG("Error while adding Triangle Mesh service: 0x%02x\r\n", ret);
+    return ret;
+  }
+
+  ret = Add_Transform_Service();
+  if(ret != BLE_STATUS_SUCCESS)
+  {
+    PRINT_DBG("Error while adding Transform service: 0x%02x\r\n", ret);
     return ret;
   }
 
@@ -885,6 +943,7 @@ void aci_gatt_attribute_modified_event(uint16_t Connection_Handle,
                                        uint8_t Attr_Data[])
 {
   Attribute_Modified_CB(Attr_Handle, Attr_Data_Length, Attr_Data);
+
 } /* end aci_gatt_attribute_modified_event() */
 
 /*******************************************************************************
@@ -901,7 +960,7 @@ void aci_gatt_notification_event(uint16_t Connection_Handle,
 {
   if(Attribute_Handle == tx_handle+1)
   {
-    receiveData(Attribute_Value, Attribute_Value_Length);
+    receiveSampleData(Attribute_Value, Attribute_Value_Length);
   }
 } /* end aci_gatt_notification_event() */
 
