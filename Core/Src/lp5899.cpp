@@ -355,7 +355,7 @@ bool Lp5899::TrySoftReset()
 	uint32_t primask = EnterCriticalSection();
 
 	std::array<uint16_t, 2> sendData = { 0xE1E1, 0xD383 };
-	std::array<uint16_t, 2> recvData = { 0xAAAA, 0xAAAA };
+	std::array<uint16_t, 4> recvData = { 0xAAAA, 0xAAAA };
 
 	FlushSPI(spi);
 
@@ -490,28 +490,175 @@ bool Lp5899::TryForwardWriteData(std::span<uint16_t> data, bool bufferData, bool
 
 	GlobalStatus statusRegister;
 	statusRegister.Value = recvData[0];
-	printf("LP5899 - Forward Data - Status: %04X\n", statusRegister.Value);
+//	printf("LP5899 - Forward Data - Status: %04X\n", statusRegister.Value);
 
 	if (statusRegister.CcsiErrorFlag != 0)
 	{
-		for (int i = 0; i < 4; ++i)
+		InterfaceStatus interfaceStatus;
+		interfaceStatus.Value = 0;
+		if (TryReadInterfaceStatus(interfaceStatus, true))
 		{
-			InterfaceStatus interfaceStatus;
-			interfaceStatus.Value = 0;
-			if (TryReadInterfaceStatus(interfaceStatus, true))
-			{
-				printf("LP5899 - Forward Data - Interface Status: %04X\n", interfaceStatus.Value);
-				return false;
-			}
-			else
-				TryWriteDeviceControl({ .ExitFailSafe = 1 }, true);
-
-			TryClearGlobalStatus(true);
+			printf("LP5899 - Forward Data - Interface Status: %04X\n", interfaceStatus.Value);
+			return false;
 		}
+		else
+			TryWriteDeviceControl({ .ExitFailSafe = 1 }, true);
+
+		TryClearGlobalStatus(true);
 
 		ErrorMessage::WrapMessage("LP5899 - Forward Data failed: Failed to read interface status register");
 		return false;
 	}
+
+	return true;
+}
+
+bool Lp5899::TryForwardReadData(std::span<uint16_t> txData, std::span<uint16_t> rxData, size_t extraEndBytes, bool bufferData, bool checkCrc)
+{
+	constexpr size_t maxDataSize      = 32;
+	constexpr size_t maxRxDataSize    = 32;
+	constexpr size_t maxExtraEndBytes = 1 << 7;
+
+	if (!initialized)
+	{
+		ErrorMessage::SetMessage("LP5899 - Forward Data failed: Not initialized");
+		return false;
+	}
+
+	uint16_t wordCount   = static_cast<uint16_t>(txData.size());
+	uint16_t rxWordCount = static_cast<uint16_t>(rxData.size());
+
+	if (wordCount > maxDataSize)
+	{
+		ErrorMessage::SetMessage("LP5899 - Forward Data failed: Too many words to forward");
+		return false;
+	}
+
+	if (rxWordCount > maxRxDataSize)
+	{
+		ErrorMessage::SetMessage("LP5899 - Forward Data failed: Too many words to receive");
+		return false;
+	}
+
+	if (extraEndBytes > maxExtraEndBytes)
+	{
+		ErrorMessage::SetMessage("LP5899 - Forward Data failed: Too many extra end bytes to forward");
+		return false;
+	}
+
+	if (!checkCrc)
+	{
+		uint16_t fifoSize = bufferData ? wordCount - 1 : 0;
+		if (!TryWriteTxFifoControl({ .TxFifoLevel = fifoSize, .TxFifoClear = 0 }, true))
+		{
+			ErrorMessage::WrapMessage("LP5899 - Forward Data failed: Failed to write TX FIFO control register");
+			return false;
+		}
+	}
+
+	if (!TryWriteRxFifoControl({ .RxFifoLevel = 0xFF, .RxFifoClear = 1}, true))
+	{
+		ErrorMessage::WrapMessage("LP5899 - Forward Data failed: Failed to write RX FIFO control register");
+		return false;
+	}
+
+	uint16_t command = static_cast<uint16_t>(checkCrc ? CommandType::FWD_RD_END_CRC : CommandType::FWD_RD_END);
+	command |= ((wordCount - 1) << 7) | (extraEndBytes & ((1 << 7) - 1));
+
+	// Create the data buffer with the command, data, and CRC
+	std::array<uint16_t, 2 + maxDataSize> sendData = { 0 };
+	sendData[0] = command;
+	memcpy(&sendData[1], txData.data(), txData.size() * sizeof(txData[0]));
+	sendData[1 + txData.size()] = CalculateCrc(std::span((uint8_t*)sendData.data(), sizeof(uint16_t) * (1 + txData.size())));
+
+	std::array<uint16_t, 2> statusReceiveData;
+
+	csPin.Reset();
+
+	HAL_StatusTypeDef status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), txData.size() + 2, 100);
+	HAL_StatusTypeDef status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(statusReceiveData.data()), statusReceiveData.size(), 100);
+
+	csPin.Set();
+
+	if (status1 != HAL_OK || status2 != HAL_OK)
+	{
+		ErrorMessage::SetMessage("LP5899 - Forward Data failed: HAL SPI transmit/receive failed");
+		return false;
+	}
+
+	if (checkCrc)
+	{
+		uint16_t calculatedCrc1 = CalculateCrc(std::span((uint8_t*)&statusReceiveData[0], 1 * sizeof(uint16_t)));
+		uint16_t crc1           = statusReceiveData[1];
+
+		if (calculatedCrc1 != crc1)
+		{
+			CrcFailErrorMessage("LP5899 - Forward Data failed", statusReceiveData, calculatedCrc1, crc1);
+			return false;
+		}
+	}
+
+	GlobalStatus statusRegister;
+	statusRegister.Value = statusReceiveData[0];
+
+	if (statusRegister.CcsiErrorFlag != 0)
+	{
+		InterfaceStatus interfaceStatus;
+		interfaceStatus.Value = 0;
+		if (TryReadInterfaceStatus(interfaceStatus, true))
+		{
+			printf("LP5899 - Forward Data - Interface Status: %04X\n", interfaceStatus.Value);
+			return false;
+		}
+		else
+			TryWriteDeviceControl({ .ExitFailSafe = 1 }, true);
+
+		TryClearGlobalStatus(true);
+
+		ErrorMessage::WrapMessage("LP5899 - Forward Data failed: Failed to read interface status register");
+		return false;
+	}
+
+	if (rxData.size() == 0)
+		return true;
+
+	HAL_Delay(10);
+
+	// Read the RX FIFO data
+	std::array<uint16_t, 1 + maxRxDataSize> recvData = { 0 };
+
+	command = static_cast<uint16_t>(checkCrc ? CommandType::DATA_RD_CRC : CommandType::DATA_RD);
+	command |= (rxWordCount & ((1 << 8) - 1));
+
+	sendData[0] = command;
+	sendData[1] = CalculateCrc(std::span((uint8_t*)sendData.data(), sizeof(uint16_t) * 1));
+
+	csPin.Reset();
+
+	status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), 2, 100);
+	status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(recvData.data()), rxWordCount + 2, 100);
+
+	csPin.Set();
+
+	if (status1 != HAL_OK || status2 != HAL_OK)
+	{
+		ErrorMessage::SetMessage("LP5899 - Forward Data failed: HAL SPI transmit/receive failed");
+		return false;
+	}
+
+	if (checkCrc)
+	{
+		uint16_t calculatedCrc1 = CalculateCrc(std::span((uint8_t*)recvData.data(), (rxWordCount + 1) * sizeof(uint16_t)));
+		uint16_t crc1           = recvData[rxWordCount + 1];
+
+		if (calculatedCrc1 != crc1)
+		{
+			CrcFailErrorMessage("LP5899 - Data Read failed", recvData, calculatedCrc1, crc1);
+			return false;
+		}
+	}
+
+	memcpy(rxData.data(), recvData.data() + 1, rxWordCount * sizeof(uint16_t));
 
 	return true;
 }

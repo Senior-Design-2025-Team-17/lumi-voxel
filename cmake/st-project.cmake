@@ -139,6 +139,7 @@ target_sources(
     "BlueNRG_2\\App\\gatt_db.c"
     "BlueNRG_2\\Target\\hci_tl_interface.c"
     "Core\\Src\\custom_bus.c"
+    "Core\\Src\\lp5890.cpp"
     "Core\\Src\\lp5899.cpp"
     "Core\\Src\\main.c"
     "Core\\Src\\run.cpp"

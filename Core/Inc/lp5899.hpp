@@ -287,12 +287,12 @@ class Lp5899
 	 */
 	bool TryForwardWriteData(std::span<uint16_t> data, bool bufferData = true, bool checkCrc = true);
 
-	bool TryForwardReadData(std::span<uint16_t> txData, std::span<uint16_t> rxData, bool bufferData = true, bool checkCrc = true);
+	bool TryForwardReadData(std::span<uint16_t> txData, std::span<uint16_t> rxData, size_t extraEndBytes = 0, bool bufferData = true, bool checkCrc = true);
 
 	bool TryReadRegister(RegisterAddr reg, uint16_t& value, bool crc = false);
-	bool TryReadRegisterMultiple(RegisterAddr startAddr, size_t count, std::span<uint16_t> values, bool crc = false);
+	// bool TryReadRegisterMultiple(RegisterAddr startAddr, size_t count, std::span<uint16_t> values, bool crc = false);
 	bool TryWriteRegister(RegisterAddr reg, uint16_t value, bool crc = false);
-	bool TryWriteRegisterMultiple(RegisterAddr startAddr, size_t count, std::span<uint16_t> values, bool crc = false);
+	// bool TryWriteRegisterMultiple(RegisterAddr startAddr, size_t count, std::span<uint16_t> values, bool crc = false);
 
 	bool TryReadDeviceId(uint16_t& deviceId, bool crc = false) { return TryReadRegister(RegisterAddr::DEVID, deviceId, crc); }
 

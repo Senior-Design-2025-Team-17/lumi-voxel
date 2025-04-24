@@ -113,6 +113,17 @@ class Driver
 		this->green[index] = QuantizeColor(green * brightness);
 		this->blue[index]  = QuantizeColor(blue * brightness);
 	}
+
+	void FillColors(float r, float g, float b)
+	{
+		red.fill(QuantizeColor(r * brightness));
+		green.fill(QuantizeColor(g * brightness));
+		blue.fill(QuantizeColor(b * brightness));
+	}
+
+	bool TryWriteColors();
+
+	bool TrySendVsync();
 };
 
 } // namespace LumiVoxel::Lp5890
