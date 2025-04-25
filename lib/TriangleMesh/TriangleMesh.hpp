@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <optional>
 #include <algorithm>
+#include <functional>
 
 /**
  * @brief Class representing a triangle mesh object with the ability to manipulate the object in 3D space before discretizing/rasterizing
@@ -72,17 +73,18 @@ class TriangleMesh
         {
             if(((v[0] >= 0) & (v[0] < x)) & ((v[1] >= 0) & (v[1] < y)) & ((v[2] >= 0) & (v[2] < z)))
             {
-                return v;
+				return v;
             }
             else
             {
                 if((drawOptions & DrawOptions::Clamp) == DrawOptions::Clamp)
                 {
-                    Eigen::Vector4f r = v;
+					Eigen::Vector4f r;
 
-                    r[0] = std::clamp((float)r[0],0.0f,(float)x - 1);
+					r[0] = std::clamp((float)r[0],0.0f,(float)x - 1);
                     r[1] = std::clamp((float)r[1],0.0f,(float)y - 1);
                     r[2] = std::clamp((float)r[2],0.0f,(float)z) - 1;
+                    r[3] = 1.0f;
 
                     return r;
                 }
@@ -118,15 +120,8 @@ class TriangleMesh
         }
 
     public:
-        TriangleMesh()
-        {
-
-        }
-
-        ~TriangleMesh()
-        {
-
-        }
+        constexpr TriangleMesh()
+        { }
 
         /**
          * @brief sets all of the colors in the LED array to a specific value
@@ -221,7 +216,7 @@ class TriangleMesh
         bool AllocateVerts(const std::array<float,vertLength>& verts_sequential)
         {
             if((vertLength % 3) != 0){
-                return 0;
+                return false;
             }
 
             verts.resize(4,(int)(vertLength / 3));
@@ -233,7 +228,13 @@ class TriangleMesh
                 (verts)(3,(int)(i/3)) = 1;
             }
 
+            if ((drawOptions & DrawOptions::ProjectToUnitCube) == DrawOptions::ProjectToUnitCube)
+            {
+                verts /= verts.maxCoeff();
+            }
+
             verts_tranformed = verts;
+
 
             if(verts_tranformed.data() != nullptr)
             {
@@ -246,16 +247,15 @@ class TriangleMesh
         /**
          * @brief Allocates all of the colors into a Eigen Matrix
          *
-         * @param colorLength Number of elements int colors_sequential
          * @param colors_sequential vector of colors sequentially stored with three floats
          *
          * @return bool indicating if allocation was successful
          */
         template <size_t colorLength>
-        bool AllocateColors(const std::array<float,colorLength>& colors_sequential)
+        bool AllocateColors(const std::array<float, colorLength>& colors_sequential)
         {
             if((colorLength % 4) != 0){
-                return 0;
+                return false;
             }
 
             colors.resize(4,(int)(colorLength / 4));
@@ -285,7 +285,7 @@ class TriangleMesh
         bool AllocateTriangles(const std::array<int,trianglesLength>& triangles_sequential)
         {
             if((trianglesLength % 3) != 0){
-                return 0;
+                return false;
             }
 
             numOfTriangles = (int)(trianglesLength/3);
@@ -312,12 +312,7 @@ class TriangleMesh
          */
         void Transform(Eigen::Matrix<float, 4, 4>& transform)
         {
-            verts_tranformed = verts * transform;
-
-            if((drawOptions & DrawOptions::ProjectToUnitCube) == DrawOptions::ProjectToUnitCube)
-            {
-                verts_tranformed /= verts_tranformed.maxCoeff();
-            }
+            verts_tranformed = transform * verts;
         }
 
         /**
@@ -476,13 +471,17 @@ class TriangleMesh
                 //iterate over all triangles
                 for(int triangleNum = 0; triangleNum < numOfTriangles; triangleNum++)
                 {
-                    Eigen::Vector4f v1 = verts_tranformed(Eigen::all,triangles(0,triangleNum));
-                    Eigen::Vector4f v2 = verts_tranformed(Eigen::all,triangles(1,triangleNum));
-                    Eigen::Vector4f v3 = verts_tranformed(Eigen::all,triangles(2,triangleNum));
+                    auto& t1 = triangles(0,triangleNum);
+                    auto& t2 = triangles(1,triangleNum);
+                    auto& t3 = triangles(2,triangleNum);
 
-                    Eigen::Vector4f c1 = colors(Eigen::all,triangles(0,triangleNum));
-                    Eigen::Vector4f c2 = colors(Eigen::all,triangles(1,triangleNum));
-                    Eigen::Vector4f c3 = colors(Eigen::all,triangles(2,triangleNum));
+                    Eigen::Vector4f v1 = verts_tranformed(Eigen::all,t1);
+                    Eigen::Vector4f v2 = verts_tranformed(Eigen::all,t2);
+                    Eigen::Vector4f v3 = verts_tranformed(Eigen::all,t3);
+
+                    Eigen::Vector4f c1 = colors(Eigen::all,t1);
+                    Eigen::Vector4f c2 = colors(Eigen::all,t2);
+                    Eigen::Vector4f c3 = colors(Eigen::all,t3);
 
 
                     // To calculate edge first we need to determine the step size
@@ -579,7 +578,7 @@ class TriangleMesh
                 {
                     std::optional<Eigen::Vector4f> v = Clamp<x,y,z>((verts_tranformed * scale)(Eigen::all,vertNum));
 
-                    //vertex 1
+					//vertex 1
                     if(v.has_value())
                     {
                         Eigen::Vector4i v_trunc = Round(v.value());

@@ -122,45 +122,6 @@ bool Driver::Init(HighPrecisionCounter& hpc)
 		return false;
 	}
 
-	// constexpr size_t stepDelay = 50;
-
-	// size_t j = 0;
-	// size_t k = 0;
-
-	// printf("Index: %d\n", j);
-	// while (true)
-	// {
-	// 	if (++k >= stepDelay)
-	// 	{
-	// 		k = 0;
-	// 		j = (j + 1) % LedCount;
-
-	// 		printf("Index: %d\n", j);
-	// 	}
-
-	// 	for (size_t i = 0; i < LedCount; ++i)
-	// 	{
-	// 		std::array<uint16_t, 4> writeSramWhite = { static_cast<uint16_t>(Command::SRAM_WRITE), 0xFFFF, 0xFFFF, 0xFFFF };
-
-	// 		// if (i == j)
-	// 		// {
-	// 		// 	writeSramWhite[1] = 0;
-	// 		// 	writeSramWhite[2] = 0;
-	// 		// 	writeSramWhite[3] = 0;
-	// 		// }
-
-	// 		if (!interface.TryForwardWriteData(writeSramWhite, false, true))
-	// 		{
-	// 			ErrorMessage::WrapMessage("LP5890 - Initialization failed: LP5890 SRAM write failed");
-	// 			return false;
-	// 		}
-	// 	}
-
-		//		puts("LP5890 - LP5899 SRAM write completed successfully");
-
-	// 	TrySendVsync();
-	// }
-
 	initialized = true;
 
 	return true;
@@ -189,6 +150,12 @@ bool Driver::TryWriteColors()
 
 bool Driver::TrySendVsync()
 {
+	if (!initialized)
+	{
+		ErrorMessage::SetMessage("LP5890 - VSYNC command failed: Not initialized");
+		return false;
+	}
+
 	std::array<uint16_t, 1> vsync = { static_cast<uint16_t>(Command::VSYNC_WRITE) };
 	if (!interface.TryForwardWriteData(vsync, true, true))
 	{

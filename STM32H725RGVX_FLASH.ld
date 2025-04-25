@@ -73,8 +73,8 @@ SECTIONS
   {
     . = ALIGN(4);
     _sitcmram = .;
-    /* *run.o(.text)
-    *run.o(.text*) */
+    *run.o(.text)
+    *run.o(.text*)
     *(.itcmram)
     *(.itcmram*)
     *(.ITCMRamFunc)
@@ -82,7 +82,7 @@ SECTIONS
     . = ALIGN(4);
     _eitcmram = .;
   } >ITCMRAM AT> FLASH
-
+		
   _sidtcmram = LOADADDR(.dtcmram);
   .dtcmram :
   {

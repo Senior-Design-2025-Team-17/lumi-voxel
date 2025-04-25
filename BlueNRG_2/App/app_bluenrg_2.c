@@ -267,7 +267,7 @@ static void receiveSampleData(uint8_t* data_buffer, uint8_t Nb_bytes)
 
   for(int i = 0; i < Nb_bytes; i++)
   {
-    PRINT_DBG("%c", data_buffer[i]);
+    PRINT_DBG("%02x ", data_buffer[i]);
   }
   fflush(stdout);
 }
@@ -279,7 +279,7 @@ static void receiveTriangleMesh(uint8_t* data_buffer, uint8_t Nb_bytes)
 
   for(int i = 0; i < Nb_bytes; i++)
   {
-    PRINT_DBG("%c", data_buffer[i]);
+    PRINT_DBG("%02x ", data_buffer[i]);
   }
   fflush(stdout);
 }
@@ -291,7 +291,7 @@ static void receiveTransform(uint8_t* data_buffer, uint8_t Nb_bytes)
 
   for(int i = 0; i < Nb_bytes; i++)
   {
-    PRINT_DBG("%c", data_buffer[i]);
+    PRINT_DBG("%02x ", data_buffer[i]);
   }
   fflush(stdout);
 }
