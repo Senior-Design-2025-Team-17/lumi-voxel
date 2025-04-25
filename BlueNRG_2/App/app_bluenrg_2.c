@@ -17,6 +17,7 @@
  */
 
 /* Includes ------------------------------------------------------------------*/
+
 #include "app_bluenrg_2.h"
 #include "app_state.h"
 #include "bluenrg1_aci.h"
