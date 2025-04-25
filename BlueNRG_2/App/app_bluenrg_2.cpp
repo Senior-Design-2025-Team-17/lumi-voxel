@@ -17,7 +17,9 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+extern "C"{
 #include "app_bluenrg_2.h"
+#include "TriangleMesh.hpp"
 
 #include "app_state.h"
 #include "bluenrg1_aci.h"
@@ -27,6 +29,8 @@
 #include "gatt_db.h"
 
 #include <stdio.h>
+
+extern TriangleMesh<512> triangleMesh;
 
 /* USER CODE BEGIN Includes */
 
@@ -275,7 +279,12 @@ static void receiveSampleData(uint8_t* data_buffer, uint8_t Nb_bytes)
 static void receiveTriangleMesh(uint8_t* data_buffer, uint8_t Nb_bytes)
 {
   BSP_LED_Toggle(LED2);
-  PRINT_DBG("Received Triangle Mesh");
+  PRINT_DBG("Received Triangle Mesh\n");
+
+  for(int i = 0; i < Nb_bytes; i++)
+  {
+    PRINT_DBG("%c", data_buffer[i]);
+  }
 
   for(int i = 0; i < Nb_bytes; i++)
   {
@@ -419,6 +428,7 @@ static uint8_t Find_DeviceName(uint8_t data_length, uint8_t *data_value)
 *******************************************************************************/
 static void Attribute_Modified_CB(uint16_t handle, uint8_t data_length, uint8_t *att_data)
 {
+  //Handles Read Ready
   if(handle == TriangleMeshRxReadyCharHandle + 1)
   {
 	 receiveTriangleMesh(att_data, data_length);
@@ -429,6 +439,22 @@ static void Attribute_Modified_CB(uint16_t handle, uint8_t data_length, uint8_t 
 	 receiveTransform(att_data, data_length);
   }
 
+  if(handle == TransformRxArrCharHandle + 1)
+  {
+
+  }
+
+  if(handle == TriangleMeshRxVertsCharHandle + 1)
+  {
+
+  }
+  if(handle == TriangleMeshRxTrisCharHandle + 1)
+  {
+
+  }
+
+
+  //Sample Things
   if(handle == sampleRXCharHandle + 1)
   {
     receiveSampleData(att_data, data_length);
@@ -1067,4 +1093,4 @@ void aci_att_exchange_mtu_resp_event(uint16_t Connection_Handle,
     mtu_exchanged = 1;
   }
 }
-
+}
