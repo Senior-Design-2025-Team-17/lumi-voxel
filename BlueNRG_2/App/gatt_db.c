@@ -67,17 +67,17 @@ tBleStatus Add_Triangle_Mesh_Service(void)
 	if (ret != BLE_STATUS_SUCCESS) goto fail;
 
 	BLUENRG_memcpy(&char_uuid.Char_UUID_128, charUuidTX, 16);
-	ret =  aci_gatt_add_char(TrianglemeshServHandle, UUID_TYPE_128, &char_uuid, CHAR_VALUE_LENGTH, CHAR_PROP_NOTIFY, ATTR_PERMISSION_NONE, 0,
+	ret =  aci_gatt_add_char(TrianglemeshServHandle, UUID_TYPE_128, &char_uuid, CHAR_VALUE_LENGTH, CHAR_PROP_NOTIFY, ATTR_PERMISSION_NONE,GATT_NOTIFY_ATTRIBUTE_WRITE,
 				16, 1, &TrianglemeshTxCharHandle);
 	if (ret != BLE_STATUS_SUCCESS) goto fail;
 
 	BLUENRG_memcpy(&char_uuid.Char_UUID_128, charUuidRxVerts, 16);
-	ret =  aci_gatt_add_char(TrianglemeshServHandle, UUID_TYPE_128, &char_uuid, CHAR_VALUE_LENGTH, CHAR_PROP_WRITE|CHAR_PROP_WRITE_WITHOUT_RESP, ATTR_PERMISSION_NONE, 0,
+	ret =  aci_gatt_add_char(TrianglemeshServHandle, UUID_TYPE_128, &char_uuid, 128, CHAR_PROP_WRITE|CHAR_PROP_WRITE_WITHOUT_RESP, ATTR_PERMISSION_NONE, GATT_NOTIFY_ATTRIBUTE_WRITE,
 				16, 1, &TriangleMeshRxVertsCharHandle);
 	if (ret != BLE_STATUS_SUCCESS) goto fail;
 
 	BLUENRG_memcpy(&char_uuid.Char_UUID_128, charUuidRxTris, 16);
-	ret =  aci_gatt_add_char(TrianglemeshServHandle, UUID_TYPE_128, &char_uuid, CHAR_VALUE_LENGTH, CHAR_PROP_WRITE|CHAR_PROP_WRITE_WITHOUT_RESP, ATTR_PERMISSION_NONE, 0,
+	ret =  aci_gatt_add_char(TrianglemeshServHandle, UUID_TYPE_128, &char_uuid, CHAR_VALUE_LENGTH, CHAR_PROP_WRITE|CHAR_PROP_WRITE_WITHOUT_RESP, ATTR_PERMISSION_NONE, GATT_NOTIFY_ATTRIBUTE_WRITE,
 				16, 1, &TriangleMeshRxTrisCharHandle);
 	if (ret != BLE_STATUS_SUCCESS) goto fail;
 
@@ -127,7 +127,7 @@ tBleStatus Add_Transform_Service(void)
 	if (ret != BLE_STATUS_SUCCESS) goto fail;
 
 	BLUENRG_memcpy(&char_uuid.Char_UUID_128, charUuidRXArr, 16);
-	ret =  aci_gatt_add_char(TransformServHandle, UUID_TYPE_128, &char_uuid, CHAR_VALUE_LENGTH, CHAR_PROP_WRITE|CHAR_PROP_WRITE_WITHOUT_RESP, ATTR_PERMISSION_NONE, 0,
+	ret =  aci_gatt_add_char(TransformServHandle, UUID_TYPE_128, &char_uuid, 64, CHAR_PROP_WRITE|CHAR_PROP_WRITE_WITHOUT_RESP, ATTR_PERMISSION_NONE, GATT_NOTIFY_ATTRIBUTE_WRITE,
 				16, 1, &TransformRxArrCharHandle);
 	if (ret != BLE_STATUS_SUCCESS) goto fail;
 
