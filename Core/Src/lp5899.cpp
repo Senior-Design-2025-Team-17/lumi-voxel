@@ -465,8 +465,8 @@ bool Lp5899::TryForwardWriteData(std::span<uint16_t> data, bool bufferData, bool
 
 	csPin.Reset();
 
-	HAL_StatusTypeDef status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), data.size() + 2, HAL_MAX_DELAY);
-	HAL_StatusTypeDef status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(recvData.data()), recvData.size(), HAL_MAX_DELAY);
+	HAL_StatusTypeDef status1 = HAL_SPI_Transmit(spi, reinterpret_cast<uint8_t*>(sendData.data()), data.size() + 2, 100);
+	HAL_StatusTypeDef status2 = HAL_SPI_Receive(spi, reinterpret_cast<uint8_t*>(recvData.data()), recvData.size(), 100);
 
 	csPin.Set();
 

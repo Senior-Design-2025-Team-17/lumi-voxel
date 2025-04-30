@@ -75,6 +75,12 @@ SECTIONS
     _sitcmram = .;
     *run.o(.text)
     *run.o(.text*)
+    *run.cpp.obj(.text)
+    *run.cpp.obj(.text*)
+    *rubiks_cube_animation.o(.text)
+    *rubiks_cube_animation.o(.text*)
+    *rubiks_cube_animation.cpp.obj(.text)
+    *rubiks_cube_animation.cpp.obj(.text*)
     *(.itcmram)
     *(.itcmram*)
     *(.ITCMRamFunc)

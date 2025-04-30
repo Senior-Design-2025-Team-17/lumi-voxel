@@ -11,11 +11,13 @@
 #include "app_bluenrg_2.h"
 #include "TriangleMesh.hpp"
 
+#include "droplet_animation.hpp"
 #include "errors.hpp"
 #include "high_precision_counter.hpp"
 #include "lp5890.hpp"
 #include "lp5890/mappings.hpp"
 #include "lp5899.hpp"
+#include "rubiks_cube_animation.hpp"
 #include "scheduler.hpp"
 #include "syscall_retarget.hpp"
 
@@ -46,20 +48,6 @@ std::array<float, numLeds> blue __attribute__((section(".dtcmram")));
 float brightness = 1.0f;
 
 TriangleMesh<256> triangleMesh __attribute__((section(".dtcmram")));
-
-// std::array<float, 12> testVertices = {
-// 	0.51f, 0.0f, 0.0f,
-// 	0.0f, 0.51f, 0.0f,
-// 	0.0f, 0.0f, 0.51f,
-// 	0.0f, 0.0f, 0.0f
-// };
-// std::array<float, 16> testColors = {
-// 	1.0f, 0.0f, 0.0f, 1.0f,
-// 	0.0f, 1.0f, 0.0f, 1.0f,
-// 	0.0f, 0.0f, 1.0f, 1.0f,
-// 	1.0f, 1.0f, 1.0f, 1.0f,
-// };
-// std::array<uint8_t, 12> testIndices = { 0, 1, 2, 0, 1, 3, 0, 2, 3, 1, 2, 3 };
 
 Scheduler scheduler(TIM6, 500, 32, 500 * 60);
 HighPrecisionCounter hpCounter(TIM7, 10000);
@@ -335,31 +323,7 @@ void setup()
 		Error_Handler();
 	}
 
-
-
-	// size_t a = 0;
-	// size_t b = 0;
-
-	// while (true)
-	// {
-	// 	if (++a >= 3)
-	// 	{
-	// 		a = 0;
-	// 		b = (b + 1) % numLeds;
-	// 	}
-
-	// 	red.fill(0.0f);
-	// 	green.fill(0.0f);
-	// 	blue.fill(0.0f);
-
-	// 	red[b] = 1.0f;
-	// 	green[b] = 1.0f;
-	// 	blue[b] = 1.0f;
-
-	// 	UpdateDisplay();
-	// }
-
-	InitializeCubeAnimation();
+	// InitializeCubeAnimation();
 
 	// Initialize the triangle mesh
 	triangleMesh.SetFillColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
@@ -388,34 +352,31 @@ extern "C" void run()
 {
 	setup();
 
-	std::array<std::reference_wrapper<std::array<float, 512>>, 3> colors = { std::ref(red), std::ref(green), std::ref(blue) };
+	DropletAnimation dropletAnimation(0.05f, 0.1f, 1.0f, 2.0f, 3, 5, 1, 3);
+	RubiksCubeAnimation rubiksCubeAnimation(4.0f, 0.25f);
 
-	constexpr float timeScale = 1000000.0f;
+	std::array<std::reference_wrapper<Animator>, 2> animations = {
+		std::ref(dropletAnimation),
+		std::ref(rubiksCubeAnimation),
+	};
+
+	for (auto& animation : animations)
+	{
+		if (!animation.get().Init(hpCounter))
+		{
+			ErrorMessage::PrintMessage();
+			Error_Handler();
+		}
+	}
+
 	while (true)
 	{
 		InterruptQueue::HandleQueue();
 
-		// float time = hpCounter.GetCount() / timeScale;
-		// float sin = std::sin(time);
-		// float cos = std::cos(time);
-
-		// Eigen::Matrix4f transform;
-		// transform << 
-		// 	cos, -sin, 0.0f, 0.49f,
-		// 	sin, cos, 0.0f, 0.49f,
-		// 	0.0f, 0.0f, 1.0f, 0.0f,
-		// 	0.0f, 0.0f, 0.0f, 1.0f;
-
-		// triangleMesh.Transform(transform);
-
-
-		// red.fill(1.0f);
-		// green.fill(1.0f);
-		// blue.fill(1.0f);
-
+		animations[1].get().Update(hpCounter, red, green, blue);
 		UpdateDisplay();
 
-		MX_BlueNRG_2_Process();
+		// MX_BlueNRG_2_Process();
 	}
 }
 

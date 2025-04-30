@@ -15,6 +15,9 @@ namespace LumiVoxel
 
 class HighPrecisionCounter
 {
+  public:
+	static constexpr uint32_t TimerFrequency = 1000000;
+
   private:
 	TIM_TypeDef* const tim;
 	const uint32_t timerPrecision;
@@ -32,7 +35,7 @@ class HighPrecisionCounter
 
 	static constexpr size_t MaxCallbacks = 32;
 	std::array<DelayedCallback, MaxCallbacks> delayedCallbacks;
-	
+
 	/// @brief The highest index of a delayed callback
 	size_t highestCallbackIndex = 0;
 
