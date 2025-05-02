@@ -11,6 +11,8 @@
 #include "TriangleMesh.hpp"
 #include "app_bluenrg_2.h"
 
+#include "adc_handle.hpp"
+#include "adc_ref.hpp"
 #include "droplet_animation.hpp"
 #include "errors.hpp"
 #include "high_precision_counter.hpp"
@@ -34,6 +36,7 @@ extern "C" UART_HandleTypeDef huart1;
 extern "C" SPI_HandleTypeDef hspi1;
 extern "C" SPI_HandleTypeDef hspi2;
 extern "C" SPI_HandleTypeDef hspi3;
+extern "C" ADC_HandleTypeDef hadc1;
 
 constexpr size_t xSize = 8;
 constexpr size_t ySize = 8;
@@ -48,7 +51,8 @@ float brightness        = 1.0f;
 uint32_t animationIndex = 0;
 extern "C"
 {
-	uint8_t bleConnected = false;
+	uint8_t bleConnected    = false;
+	uint8_t bleHasConnected = false;
 }
 
 TriangleMesh<256> triangleMesh __attribute__((section(".dtcmram")));
@@ -61,8 +65,12 @@ std::array<std::reference_wrapper<Animator>, 3> animations = {
 	std::ref(rubiksCubeAnimation)
 };
 
-Scheduler scheduler(TIM6, 500, 32, 500 * 60);
+Scheduler scheduler(TIM6, 500, 10000, 500 * 60);
 HighPrecisionCounter hpCounter(TIM7, 10000);
+
+uint32_t brightnessAdcValue;
+AdcRef adcRef(&hadc1, scheduler, 0.1f, 1.0f, &brightnessAdcValue, 1, 0xFFFF);
+AdcHandle adcHandle(adcRef, brightnessAdcValue);
 
 Lp5890::FC0 fc0 = []() {
 	Lp5890::FC0 fc0              = Lp5890::FC0::Default();
@@ -73,8 +81,8 @@ Lp5890::FC0 fc0 = []() {
 	fc0.LedOpenLoadRemovalEnable = 0;
 	fc0.ScanLineNumber           = 16 - 1;
 	fc0.SubPeriodNumber          = 0b11;
-	fc0.FrequencyMode            = 0;
-	fc0.FrequencyMultiplier      = 12 - 1;
+	fc0.FrequencyMode            = 1;
+	fc0.FrequencyMultiplier      = 15 - 1;
 	fc0.RedGroupDelay            = 0;
 	fc0.GreenGroupDelay          = 0;
 	fc0.BlueGroupDelay           = 0;
@@ -92,6 +100,7 @@ Lp5890::FC2 fc2 = []() {
 	fc2.RedPreDischargeVoltage   = 0b0110;
 	fc2.GreenPreDischargeVoltage = 0b0110;
 	fc2.BluePreDischargeVoltage  = 0b0110;
+	fc2.RedBrighnessCompensation = 2;
 	return fc2;
 }();
 Lp5890::FC3 fc3 = []() {
@@ -206,6 +215,9 @@ extern "C" void BluetoothConnectAnimation()
 {
 	constexpr uint64_t delay = 500000;
 
+	if (bleHasConnected)
+		return;
+
 	red.fill(0.0f);
 	green.fill(0.0f);
 
@@ -232,6 +244,7 @@ extern "C" void BluetoothConnectionSuccessAnimation()
 	UpdateDisplay();
 
 	bleConnected   = true;
+	bleHasConnected = true;
 	animationIndex = 0;
 }
 
@@ -290,6 +303,18 @@ void setup()
 	if (hpCounter.Init())
 		puts("High precision counter initialized successfully");
 	else
+	{
+		ErrorMessage::PrintMessage();
+		Error_Handler();
+	}
+
+	if (!adcRef.Init())
+	{
+		ErrorMessage::PrintMessage();
+		Error_Handler();
+	}
+
+	if (!adcHandle.Init())
 	{
 		ErrorMessage::PrintMessage();
 		Error_Handler();
@@ -383,6 +408,8 @@ extern "C" void run()
 	while (true)
 	{
 		InterruptQueue::HandleQueue();
+
+		brightness = adcHandle.GetVoltage() / 3.3f;
 
 		if (animationIndex >= animations.size())
 			animationIndex = 0;

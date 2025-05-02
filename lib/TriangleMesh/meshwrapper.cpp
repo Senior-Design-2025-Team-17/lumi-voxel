@@ -1,5 +1,6 @@
 #include "meshwrapper.h"
 #include "TriangleMesh.hpp"
+#include "animator.hpp"
 
 #include <algorithm>
 #include <array>
@@ -14,6 +15,8 @@ extern std::array<float, 512> blue;
 
 extern float brightness;
 extern uint32_t animationIndex;
+extern LumiVoxel::HighPrecisionCounter hpCounter;
+extern std::array<std::reference_wrapper<LumiVoxel::Animator>, 3> animations;
 
 extern "C" void SetRainbowPresetColors();
 
@@ -89,6 +92,7 @@ extern "C" bool colorMode(uint8_t* data, uint8_t count)
 	}
 
 	animationIndex = animationMode;
+	animations[animationIndex].get().Init(hpCounter);
 
 	return true;
 }

@@ -157,6 +157,8 @@ target_sources(
     "BlueNRG_2\\App\\app_bluenrg_2.c"
     "BlueNRG_2\\App\\gatt_db.c"
     "BlueNRG_2\\Target\\hci_tl_interface.c"
+    "Core\\Src\\adc_handle.cpp"
+    "Core\\Src\\adc_ref.cpp"
     "Core\\Src\\custom_bus.c"
     "Core\\Src\\droplet_animation.cpp"
     "Core\\Src\\lp5890.cpp"

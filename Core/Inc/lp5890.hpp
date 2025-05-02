@@ -36,7 +36,7 @@ class Driver
 	static constexpr uint16_t ColorMin = 0;
 	static constexpr size_t LedCount   = 256;
 
-	static constexpr uint16_t CcsiClock = 0xA; ///< @brief CCSI clock rate (5MHz)
+	static constexpr uint16_t CcsiClock = 0xC; ///< @brief CCSI clock rate (5MHz)
 
   private:
 	Lp5899& interface;
