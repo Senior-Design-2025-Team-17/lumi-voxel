@@ -102,10 +102,7 @@ void RubiksCubeAnimation::Update(HighPrecisionCounter& hpCounter, std::array<flo
 		return;
 	}
 
-	float rotationProgress = (float)(now - rotationStartTime) / (rotationEndTime - rotationStartTime);
-	rotationProgress       = std::clamp(rotationProgress, 0.0f, 1.0f);
-
-	if (rotationProgress >= 1.0f)
+	if (now >= rotationEndTime)
 	{
 		// Copy the rotated position to the colors array
 		Rotate90(rotationAxis, rotationDirection, rotationLayer, currentColors, rotatedColors);
@@ -121,6 +118,8 @@ void RubiksCubeAnimation::Update(HighPrecisionCounter& hpCounter, std::array<flo
 	}
 	else
 	{
+		float rotationProgress = (float)(now - rotationStartTime) / (rotationEndTime - rotationStartTime);
+		rotationProgress       = std::clamp(rotationProgress, 0.0f, 1.0f);
 		Rotate(rotationProgress * 90, rotationAxis, rotationDirection, rotationLayer, currentColors, rotatedColors);
 	}
 
@@ -204,33 +203,20 @@ void RubiksCubeAnimation::RotateLayer(float angle, std::array<uint16_t, 64>& ind
 
 	float progress = angle / 90.0f;
 
-	float s1 = -std::tan(angle * degToRad / 2);
-	float s2 = std::sin(angle * degToRad);
-
 	for (size_t i = 0; i < 64; ++i)
 	{
 		size_t startIndex = indices[i];
 
-		Vector2i p = { (int)(i % 8), (int)((i / 8) % 8) };
+		uint8_t ring = SlideRings[i];
+		uint8_t ringOffset = SlideRingReverse[i];
+		uint8_t ring90Length = Ring90DegreeLengths[ring];
+		size_t ringLength = RingLengths[ring];
 
-		Vector2i p1 = ShearX(p, center, s1);
-		Vector2i p2 = ShearY(p1, center, s2);
-		Vector2i p3 = ShearX(p2, center, s1);
+		size_t offset = (ringOffset + (int)(progress * (ring90Length - 1))) % ringLength;
 
-		if (progress > 0)
-			p3.x = Round(p3.x + progress);
-		else
-			p3.y = Round(p3.y - progress);
+		size_t newIndex = indices[GetRingIndex(ring, offset)];
 
-		if (p3.x < 0 || p3.x >= 8 || p3.y < 0 || p3.y >= 8)
-		{
-			outColors[startIndex] = ColorName::EMPTY;
-		}
-		else
-		{
-			size_t newIndex     = indices[(size_t)p3.x + (size_t)p3.y * 8];
-			outColors[newIndex] = inColors[startIndex];
-		}
+		outColors[newIndex] = inColors[startIndex];
 	}
 }
 

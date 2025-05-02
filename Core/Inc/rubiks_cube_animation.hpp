@@ -54,16 +54,17 @@ class RubiksCubeAnimation : public Animator
   private:
 	static constexpr std::array<std::array<float, 3>, 8> ColorMap = {
 		{ { 0.0f, 0.0f, 0.0f },
-         { 1.0f, 1.0f, 0.0f },
+         { 1.0f, 0.5f, 0.0f },
          { 1.0f, 1.0f, 1.0f },
          { 1.0f, 0.0f, 0.0f },
-         { 0.75f, 0.5f, 0.0f },
+         { 1.0f, 0.0f, 1.0f },
          { 0.0f, 1.0f, 0.0f },
          { 0.0f, 0.0f, 1.0f },
-         { 0.25f, 0.25f, 0.25f } }
+         { 0.125f, 0.125f, 0.125f } }
 	};
 
 	static constexpr std::array<uint8_t, 4> Ring90DegreeLengths = { 8, 6, 4, 2 };
+	static constexpr std::array<uint8_t, 4> RingLengths = { 28, 20, 12, 4 };
 
 	// clang-format off
 	static constexpr std::array<uint8_t, 64> SlideRings = {
@@ -113,8 +114,24 @@ class RubiksCubeAnimation : public Animator
 		27, 28,
 		36, 35
 	};
-
 	// clang-format on
+
+	static constexpr uint8_t GetRingIndex(size_t ring, size_t index)
+	{
+		switch (ring)
+		{
+		case 0:
+			return SlideRing0[index];
+		case 1:
+			return SlideRing1[index];
+		case 2:
+			return SlideRing2[index];
+		case 3:
+			return SlideRing3[index];
+		default:
+			return 0;
+		}
+	}
 
 	static constexpr size_t RotateLayerCount                              = 3;
 	static constexpr std::array<uint8_t, RotateLayerCount> RotationLayer1 = { 7, 6, 5 };

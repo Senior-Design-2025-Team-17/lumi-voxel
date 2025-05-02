@@ -1,6 +1,7 @@
 #ifndef _TRIANGLE_MESH_HPP
 #define _TRIANGLE_MESH_HPP
 
+#include "animator.hpp"
 #include "helper.hpp"
 
 #include <Eigen/Core>
@@ -101,7 +102,7 @@ namespace LumiVoxel
  * The TriangleMesh can be dispayed with a call to Rasterize given proper initialization has been performed and DrawOptions has been set.
  */
 template <size_t maxVertNum = 512>
-class TriangleMesh
+class TriangleMesh : public Animator
 {
   public:
 	constexpr size_t MaxVertexCount() const { return maxVertNum; }
@@ -133,13 +134,7 @@ class TriangleMesh
 	/// @brief Number of verticies contained within the triangle mesh
 	int meshVertexNum = 0;
 
-	// for test patten of in sequence drawing
-	int sequenceDrawn = 0;
-
-	// Stuff for game of life
-	int numToReviveLowerBound = 0; // Lower bound for revival
-	int numToReviveUpperBound = 0; // upper bound for revival
-	int numToKill             = 0; // Kills lower than this value
+	bool hasChanged = false;
 
 	/**
 	 * @brief Defined the clamping behavior when points lie beyond the boundaries defined
@@ -206,6 +201,12 @@ class TriangleMesh
   public:
 	constexpr TriangleMesh()
 	{}
+
+	bool Init(HighPrecisionCounter& hpCounter) override
+	{
+		hasChanged = true;
+		return true;
+	}
 
 	/**
 	 * @brief sets all of the colors in the LED array to a specific value
@@ -338,10 +339,10 @@ class TriangleMesh
 			// 	verts.col(i) = verts.col(i) - vertMin + Eigen::Vector4f(0.5f, 0.5f, 0.5f, 0.0f);
 			// }
 			Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
-			scale(0, 0) = 1.0f / maxDiff;
-			scale(1, 1) = 1.0f / maxDiff;
-			scale(2, 2) = 1.0f / maxDiff;
-			scale(3, 3) = 1.0f / maxDiff;
+			scale(0, 0)           = 1.0f / maxDiff;
+			scale(1, 1)           = 1.0f / maxDiff;
+			scale(2, 2)           = 1.0f / maxDiff;
+			scale(3, 3)           = 1.0f / maxDiff;
 
 			verts = scale * verts;
 		}
@@ -353,6 +354,7 @@ class TriangleMesh
 			meshState |= Status::VertsAllocated;
 		}
 
+		hasChanged = true;
 		return (verts_tranformed.data() != nullptr);
 	}
 
@@ -383,6 +385,7 @@ class TriangleMesh
 			meshState |= Status::ColorsAllocated;
 		}
 
+		hasChanged = true;
 		return (colors.data() != nullptr);
 	}
 
@@ -415,6 +418,7 @@ class TriangleMesh
 			meshState |= Status::TrianglesAllocated;
 		}
 
+		hasChanged = true;
 		return (triangles.data() != nullptr);
 	}
 
@@ -427,81 +431,18 @@ class TriangleMesh
 	void Transform(Eigen::Matrix<float, 4, 4>& transform)
 	{
 		verts_tranformed = transform * verts;
-	}
-
-	/**
-	 * @brief Advances timestep for the Game of life
-	 *
-	 * @param updateStep number of advances to perform
-	 */
-	void CellularAutomataAdvanceTimestep(int updateStep)
-	{
-	}
-
-	/**
-	 * @brief Runs the specific testing algorithm
-	 *
-	 * @param blueMatrix XxYxZ float matrix to represent the blue component of the LED matrix.
-	 * @param greenMatrix XxYxZ float matrix to represent the green component of the LED matrix.
-	 * @param redMatrix XxYxZ float matrix to represent the red component of the LED matrix.
-	 */
-	template <size_t LEDNum>
-	void Test(std::array<float, LEDNum>& blueMatrix, std::array<float, LEDNum>& greenMatrix, std::array<float, LEDNum>& redMatrix)
-	{
-
-		// //generate "rand white lights"
-		// if(drawOptions && DrawOptions::DrawTestFill)
-		// {
-		//     for(int index = 0; index < LEDNum; index++)
-		//     {
-		//         #ifndef STM32_PROCESSOR
-		//         auto startTime = std::chrono::high_resolution_clock::now();
-
-		//         auto currentTime = std::chrono::high_resolution_clock::now();
-		//         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-		//         #else
-		//         float time = 0.00000001;
-		//         #endif
-
-		//         blueMatrix[index] > 1.0f ? blueMatrix[index] = 0.0f : blueMatrix[index] += time * 10000.0f;
-		//         greenMatrix[index] > 1.0f ? greenMatrix[index] = 0.0f : greenMatrix[index] += time * 10000.0f;
-		//         redMatrix[index] > 1.0f ? redMatrix[index] = 0.0f : redMatrix[index] += time * 10000.0f;
-		//     }
-
-		//     return true;
-		// }
-
-		// //Flushes the frame before every draw.
-		// SetColor(blueMatrix,greenMatrix,redMatrix,fillColor);
-
-		// // ^Needs to be called before the sequential test to ensure a clean drawing. Inefficient, but should only be used for testing purposes
-		// //Lights leds sequentially in order
-		// if(drawOptions && DrawOptions::DrawTestSequential)
-		// {
-
-		//     redMatrix[sequenceDrawn] = 1.0f;
-		//     greenMatrix[sequenceDrawn] = 1.0f;
-		//     blueMatrix[sequenceDrawn] = 1.0f;
-
-		//     sequenceDrawn++;
-		//     if(sequenceDrawn >= LEDNum)
-		//     {
-		//         sequenceDrawn = 0;
-		//     }
-		//     return true;
-		// }
+		hasChanged       = true;
 	}
 
   private:
-	template<size_t sx, size_t sy, size_t sz>
+	template <size_t sx, size_t sy, size_t sz>
 	void DrawEdge(std::array<float, sx * sy * sz>& blueMatrix, std::array<float, sx * sy * sz>& greenMatrix, std::array<float, sx * sy * sz>& redMatrix, Eigen::Vector4f v1, Eigen::Vector4f v2, Eigen::Vector4f c1, Eigen::Vector4f c2)
 	{
 		constexpr size_t maxSteps = (size_t)std::ceil(std::sqrt(sx * sx + sy * sy + sz * sz));
 
 		for (size_t i = 0; i < maxSteps; ++i)
 		{
-			float t = (float)i / (float)(maxSteps - 1);
+			float t           = (float)i / (float)(maxSteps - 1);
 			Eigen::Vector4f v = v1 * (1.0f - t) + v2 * t;
 			Eigen::Vector4f c = c1 * (1.0f - t) + c2 * t;
 
@@ -520,6 +461,15 @@ class TriangleMesh
 	}
 
   public:
+	void Update(HighPrecisionCounter& hpCounter, std::array<float, 512>& red, std::array<float, 512>& green, std::array<float, 512>& blue) override
+	{
+		if (hasChanged)
+		{
+			Rasterize<8, 8, 8>(red, green, blue);
+			hasChanged = false;
+		}
+	}
+
 	/**
 	 * @brief Draws triangles on the LED matrix. The dimension of the LED matrix is templated, and the total number of LEDs in the matrix is
 	 * given by multiplying all template parameters together. The output colors channels should match this dimension.
@@ -528,14 +478,14 @@ class TriangleMesh
 	 * For Edge drawing a simple line interpolation method is used to determine the color
 	 * For Vertex drawing, there is no interpolation
 	 *
-	 * @param blueMatrix XxYxZ float matrix to represent the blue component of the LED matrix.
-	 * @param greenMatrix XxYxZ float matrix to represent the green component of the LED matrix.
 	 * @param redMatrix XxYxZ float matrix to represent the red component of the LED matrix.
+	 * @param greenMatrix XxYxZ float matrix to represent the green component of the LED matrix.
+	 * @param blueMatrix XxYxZ float matrix to represent the blue component of the LED matrix.
 	 *
 	 * @return true if sucessfully wrote to color arrays
 	 */
 	template <size_t x, size_t y, size_t z>
-	bool Rasterize(std::array<float, x * y * z>& blueMatrix, std::array<float, x * y * z>& greenMatrix, std::array<float, x * y * z>& redMatrix)
+	bool Rasterize(std::array<float, x * y * z>& redMatrix, std::array<float, x * y * z>& greenMatrix, std::array<float, x * y * z>& blueMatrix)
 	{
 		int scale = (std::max(x, std::max(y, z)) - 1);
 

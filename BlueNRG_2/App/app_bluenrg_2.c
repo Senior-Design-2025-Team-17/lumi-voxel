@@ -28,7 +28,7 @@
 #include "meshwrapper.h"
 #include <stdio.h>
 /* USER CODE BEGIN Includes */
-
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private defines -----------------------------------------------------------*/
@@ -76,7 +76,7 @@ uint8_t counter      = 0;
 uint8_t local_name[] = { AD_TYPE_COMPLETE_LOCAL_NAME, 'B', 'l', 'u', 'e', 'N', 'R', 'G', '_', 'S', 'a', 'm', 'p', 'l', 'e', 'A', 'p', 'p' };
 
 /* USER CODE BEGIN PV */
-
+extern uint8_t bleConnected;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -160,106 +160,6 @@ void MX_BlueNRG_2_Process(void)
 	/* USER CODE END BlueNRG_2_Process_PostTreatment */
 }
 
-static void sendTransformData(uint8_t* data_buffer, uint8_t Nb_bytes)
-{
-	uint32_t tickstart = HAL_GetTick();
-	if (device_role == SLAVE_ROLE)
-	{
-		while (aci_gatt_update_char_value_ext(connection_handle,
-		                                      TransformServHandle,
-		                                      TransformTxCharHandle,
-		                                      1, Nb_bytes, 0, Nb_bytes, data_buffer) == BLE_STATUS_INSUFFICIENT_RESOURCES)
-		{
-			APP_FLAG_SET(TX_BUFFER_FULL);
-			while (APP_FLAG(TX_BUFFER_FULL)) {
-				hci_user_evt_proc();
-				// Radio is busy (buffer full).
-				if ((HAL_GetTick() - tickstart) > (10 * HCI_DEFAULT_TIMEOUT_MS))
-					break;
-			}
-		}
-	}
-	else
-	{
-		while (aci_gatt_write_without_resp(connection_handle, rx_handle + 1, Nb_bytes, data_buffer) == BLE_STATUS_NOT_ALLOWED)
-		{
-			hci_user_evt_proc();
-			// Radio is busy (buffer full).
-			if ((HAL_GetTick() - tickstart) > (10 * HCI_DEFAULT_TIMEOUT_MS))
-				break;
-		}
-	}
-}
-static void sendTriangleMeshData(uint8_t* data_buffer, uint8_t Nb_bytes)
-{
-	uint32_t tickstart = HAL_GetTick();
-	if (device_role == SLAVE_ROLE)
-	{
-		while (aci_gatt_update_char_value_ext(connection_handle,
-		                                      TrianglemeshServHandle,
-		                                      TrianglemeshTxCharHandle,
-		                                      1, Nb_bytes, 0, Nb_bytes, data_buffer) == BLE_STATUS_INSUFFICIENT_RESOURCES)
-		{
-			APP_FLAG_SET(TX_BUFFER_FULL);
-			while (APP_FLAG(TX_BUFFER_FULL)) {
-				hci_user_evt_proc();
-				// Radio is busy (buffer full).
-				if ((HAL_GetTick() - tickstart) > (10 * HCI_DEFAULT_TIMEOUT_MS))
-					break;
-			}
-		}
-	}
-	else
-	{
-		while (aci_gatt_write_without_resp(connection_handle, rx_handle + 1, Nb_bytes, data_buffer) == BLE_STATUS_NOT_ALLOWED)
-		{
-			hci_user_evt_proc();
-			// Radio is busy (buffer full).
-			if ((HAL_GetTick() - tickstart) > (10 * HCI_DEFAULT_TIMEOUT_MS))
-				break;
-		}
-	}
-}
-
-/**
- * @brief  This function is used to send data related to the sample service
- *         (to be sent over the air to the remote board).
- * @param  data_buffer : pointer to data to be sent
- * @param  Nb_bytes : number of bytes to send
- * @retval None
- */
-static void sendData(uint8_t* data_buffer, uint8_t Nb_bytes)
-{
-	uint32_t tickstart = HAL_GetTick();
-
-	if (device_role == SLAVE_ROLE)
-	{
-		while (aci_gatt_update_char_value_ext(connection_handle,
-		                                      sampleServHandle,
-		                                      sampleTXCharHandle,
-		                                      1, Nb_bytes, 0, Nb_bytes, data_buffer) == BLE_STATUS_INSUFFICIENT_RESOURCES)
-		{
-			APP_FLAG_SET(TX_BUFFER_FULL);
-			while (APP_FLAG(TX_BUFFER_FULL)) {
-				hci_user_evt_proc();
-				// Radio is busy (buffer full).
-				if ((HAL_GetTick() - tickstart) > (10 * HCI_DEFAULT_TIMEOUT_MS))
-					break;
-			}
-		}
-	}
-	else
-	{
-		while (aci_gatt_write_without_resp(connection_handle, rx_handle + 1, Nb_bytes, data_buffer) == BLE_STATUS_NOT_ALLOWED)
-		{
-			hci_user_evt_proc();
-			// Radio is busy (buffer full).
-			if ((HAL_GetTick() - tickstart) > (10 * HCI_DEFAULT_TIMEOUT_MS))
-				break;
-		}
-	}
-}
-
 /**
  * @brief  This function is used to receive data related to the sample service
  *         (received over the air from the remote board).
@@ -270,30 +170,6 @@ static void sendData(uint8_t* data_buffer, uint8_t Nb_bytes)
 static void receiveSampleData(uint8_t* data_buffer, uint8_t Nb_bytes)
 {
 	BSP_LED_Toggle(LED2);
-
-	for (int i = 0; i < Nb_bytes; i++)
-	{
-		PRINT_DBG("%02x ", data_buffer[i]);
-	}
-	fflush(stdout);
-}
-
-static void receiveTriangleMesh(uint8_t* data_buffer, uint8_t Nb_bytes)
-{
-	BSP_LED_Toggle(LED2);
-	PRINT_DBG("Received Triangle Mesh Ready\n");
-
-	for (int i = 0; i < Nb_bytes; i++)
-	{
-		PRINT_DBG("%02x ", data_buffer[i]);
-	}
-	fflush(stdout);
-}
-
-static void receiveTransform(uint8_t* data_buffer, uint8_t Nb_bytes)
-{
-	BSP_LED_Toggle(LED2);
-	PRINT_DBG("Received Transform");
 
 	for (int i = 0; i < Nb_bytes; i++)
 	{
@@ -934,6 +810,8 @@ void hci_disconnection_complete_event(uint8_t Status,
 	PRINT_DBG("Disconnection with reason: 0x%02X\r\n", Reason);
 	Reset_DiscoveryContext();
 
+	bleConnected = false;
+
 } /* end hci_disconnection_complete_event() */
 
 /*******************************************************************************
@@ -987,6 +865,9 @@ void aci_gatt_attribute_modified_event(uint16_t Connection_Handle,
                                        uint16_t Attr_Data_Length,
                                        uint8_t Attr_Data[])
 {
+	UNUSED(Connection_Handle);
+	UNUSED(Offset);
+
 	Attribute_Modified_CB(Attr_Handle, Attr_Data_Length, Attr_Data);
 
 } /* end aci_gatt_attribute_modified_event() */
@@ -1003,6 +884,8 @@ void aci_gatt_notification_event(uint16_t Connection_Handle,
                                  uint8_t Attribute_Value_Length,
                                  uint8_t Attribute_Value[])
 {
+	UNUSED(Connection_Handle);
+
 	if (Attribute_Handle == tx_handle + 1)
 	{
 		receiveSampleData(Attribute_Value, Attribute_Value_Length);
@@ -1021,6 +904,9 @@ void aci_gatt_disc_read_char_by_uuid_resp_event(uint16_t Connection_Handle,
                                                 uint8_t Attribute_Value_Length,
                                                 uint8_t Attribute_Value[])
 {
+	UNUSED(Attribute_Value_Length);
+	UNUSED(Attribute_Value);
+
 	PRINT_DBG("aci_gatt_disc_read_char_by_uuid_resp_event, Connection Handle: 0x%04X\r\n", Connection_Handle);
 	if (APP_FLAG(START_READ_TX_CHAR_HANDLE) && !APP_FLAG(END_READ_TX_CHAR_HANDLE))
 	{
@@ -1055,6 +941,9 @@ void aci_gatt_disc_read_char_by_uuid_resp_event(uint16_t Connection_Handle,
 void aci_gatt_proc_complete_event(uint16_t Connection_Handle,
                                   uint8_t Error_Code)
 {
+	UNUSED(Connection_Handle);
+	UNUSED(Error_Code);
+
 	if (APP_FLAG(START_READ_TX_CHAR_HANDLE) && !APP_FLAG(END_READ_TX_CHAR_HANDLE))
 	{
 		APP_FLAG_SET(END_READ_TX_CHAR_HANDLE);
@@ -1078,6 +967,8 @@ void aci_gatt_proc_complete_event(uint16_t Connection_Handle,
 void aci_gatt_tx_pool_available_event(uint16_t Connection_Handle,
                                       uint16_t Available_Buffers)
 {
+	UNUSED(Connection_Handle);
+	UNUSED(Available_Buffers);
 	APP_FLAG_CLEAR(TX_BUFFER_FULL);
 } /* end aci_gatt_tx_pool_available_event() */
 
@@ -1091,6 +982,8 @@ void aci_gatt_tx_pool_available_event(uint16_t Connection_Handle,
 void aci_att_exchange_mtu_resp_event(uint16_t Connection_Handle,
                                      uint16_t Server_RX_MTU)
 {
+	UNUSED(Connection_Handle);
+
 	PRINT_DBG("aci_att_exchange_mtu_resp_event: Server_RX_MTU=%d\r\n", Server_RX_MTU);
 
 	if (Server_RX_MTU <= CLIENT_MAX_MTU_SIZE) {

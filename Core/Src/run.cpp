@@ -8,8 +8,8 @@
 
 #include "main.h"
 
-#include "app_bluenrg_2.h"
 #include "TriangleMesh.hpp"
+#include "app_bluenrg_2.h"
 
 #include "droplet_animation.hpp"
 #include "errors.hpp"
@@ -20,7 +20,6 @@
 #include "rubiks_cube_animation.hpp"
 #include "scheduler.hpp"
 #include "syscall_retarget.hpp"
-
 
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_def.h"
@@ -45,14 +44,27 @@ constexpr size_t numLeds = xSize * ySize * zSize;
 std::array<float, numLeds> red __attribute__((section(".dtcmram")));
 std::array<float, numLeds> green __attribute__((section(".dtcmram")));
 std::array<float, numLeds> blue __attribute__((section(".dtcmram")));
-float brightness = 1.0f;
+float brightness        = 1.0f;
+uint32_t animationIndex = 0;
+extern "C"
+{
+	uint8_t bleConnected = false;
+}
 
 TriangleMesh<256> triangleMesh __attribute__((section(".dtcmram")));
+DropletAnimation dropletAnimation __attribute__((section(".dtcmram"))) (0.05f, 0.1f, 1.0f, 2.0f, 3, 5, 1, 3);
+RubiksCubeAnimation rubiksCubeAnimation __attribute__((section(".dtcmram"))) (0.15f, 0.25f);
+
+std::array<std::reference_wrapper<Animator>, 3> animations = {
+	std::ref(triangleMesh),
+	std::ref(dropletAnimation),
+	std::ref(rubiksCubeAnimation)
+};
 
 Scheduler scheduler(TIM6, 500, 32, 500 * 60);
 HighPrecisionCounter hpCounter(TIM7, 10000);
 
-Lp5890::FC0 fc0 __attribute__((section(".dtcmram"))) = []() {
+Lp5890::FC0 fc0 = []() {
 	Lp5890::FC0 fc0              = Lp5890::FC0::Default();
 	fc0.ChipNumber               = 0;
 	fc0.PreDischargeEnable       = 1;
@@ -69,20 +81,20 @@ Lp5890::FC0 fc0 __attribute__((section(".dtcmram"))) = []() {
 	fc0.ModuleSize               = 0b01;
 	return fc0;
 }();
-Lp5890::FC1 fc1 __attribute__((section(".dtcmram"))) = []() {
+Lp5890::FC1 fc1 = []() {
 	Lp5890::FC1 fc1          = Lp5890::FC1::Default();
 	fc1.SegmentLength        = 1023;
 	fc1.BlackFieldAdjustment = 0;
 	return fc1;
 }();
-Lp5890::FC2 fc2 __attribute__((section(".dtcmram"))) = []() {
+Lp5890::FC2 fc2 = []() {
 	Lp5890::FC2 fc2              = Lp5890::FC2::Default();
 	fc2.RedPreDischargeVoltage   = 0b0110;
 	fc2.GreenPreDischargeVoltage = 0b0110;
 	fc2.BluePreDischargeVoltage  = 0b0110;
 	return fc2;
 }();
-Lp5890::FC3 fc3 __attribute__((section(".dtcmram"))) = []() {
+Lp5890::FC3 fc3 = []() {
 	Lp5890::FC3 fc3          = Lp5890::FC3::Default();
 	fc3.RedColorBrightness   = 255;
 	fc3.GreenColorBrightness = 160;
@@ -94,7 +106,7 @@ Lp5890::FC3 fc3 __attribute__((section(".dtcmram"))) = []() {
 	// fc3.BlueLedWeakThreshold  = 7;
 	return fc3;
 }();
-Lp5890::FC4 fc4 __attribute__((section(".dtcmram"))) = []() {
+Lp5890::FC4 fc4 = []() {
 	Lp5890::FC4 fc4 = Lp5890::FC4::Default();
 	fc4.MaxCurrent  = 1;
 	return fc4;
@@ -129,11 +141,11 @@ void InitializeCubeAnimation()
 	red.fill(1.0f);
 	green.fill(0.0f);
 	blue.fill(0.0f);
-	
+
 	uint64_t count = hpCounter.GetCount();
-	while( (hpCounter.GetCount() - count) < delay)
+	while ((hpCounter.GetCount() - count) < delay)
 	{
-		//wait
+		// wait
 		UpdateDisplay();
 	}
 
@@ -142,9 +154,9 @@ void InitializeCubeAnimation()
 	blue.fill(0.0f);
 
 	count = hpCounter.GetCount();
-	while( (hpCounter.GetCount() - count) < delay)
+	while ((hpCounter.GetCount() - count) < delay)
 	{
-		//wait
+		// wait
 		UpdateDisplay();
 	}
 
@@ -153,9 +165,9 @@ void InitializeCubeAnimation()
 	blue.fill(1.0f);
 
 	count = hpCounter.GetCount();
-	while( (hpCounter.GetCount() - count) < delay)
+	while ((hpCounter.GetCount() - count) < delay)
 	{
-		//wait
+		// wait
 		UpdateDisplay();
 	}
 
@@ -164,9 +176,9 @@ void InitializeCubeAnimation()
 	blue.fill(1.0f);
 
 	count = hpCounter.GetCount();
-	while( (hpCounter.GetCount() - count) < delay)
+	while ((hpCounter.GetCount() - count) < delay)
 	{
-		//wait
+		// wait
 		UpdateDisplay();
 	}
 
@@ -190,7 +202,6 @@ void InitializeCubeAnimation()
 	UpdateDisplay();
 }
 
-
 extern "C" void BluetoothConnectAnimation()
 {
 	constexpr uint64_t delay = 500000;
@@ -199,9 +210,9 @@ extern "C" void BluetoothConnectAnimation()
 	green.fill(0.0f);
 
 	uint64_t count = hpCounter.GetCount();
-	while( (hpCounter.GetCount() - count) < delay)
+	while ((hpCounter.GetCount() - count) < delay)
 	{
-		//wait
+		// wait
 		blue.fill(1 - (std::cos(3.14 * (hpCounter.GetCount() - count) / 500000.0f) / 2.0f));
 
 		UpdateDisplay();
@@ -220,12 +231,8 @@ extern "C" void BluetoothConnectionSuccessAnimation()
 	green.fill(1.0f);
 	UpdateDisplay();
 
-	// uint64_t count = hpCounter.GetCount();
-	// while( (hpCounter.GetCount() - count) < delay)
-	// {
-	// 	//wait
-	// 	UpdateDisplay();
-	// }
+	bleConnected   = true;
+	animationIndex = 0;
 }
 
 extern "C" void SetRainbowPresetColors()
@@ -233,10 +240,22 @@ extern "C" void SetRainbowPresetColors()
 	std::array<float, 4 * triangleMesh.MaxVertexCount()> colors;
 
 	std::array<float, 4 * 4> presetColors = {
-		1.0f, 0.0f, 0.0f, 1.0f,
-		0.0f, 1.0f, 0.0f, 1.0f,
-		0.0f, 0.0f, 1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		0.0f,
+		1.0f,
+		1.0f,
+		1.0f,
+		1.0f,
+		1.0f,
+		1.0f,
 	};
 
 	for (size_t i = 0; i < triangleMesh.MaxVertexCount(); ++i)
@@ -323,7 +342,7 @@ void setup()
 		Error_Handler();
 	}
 
-	// InitializeCubeAnimation();
+	InitializeCubeAnimation();
 
 	// Initialize the triangle mesh
 	triangleMesh.SetFillColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
@@ -334,7 +353,7 @@ void setup()
 
 	triangleMesh.Transform(transform);
 
-	triangleMesh.Rasterize<8, 8, 8>(blue, green, red);
+	triangleMesh.Rasterize<8, 8, 8>(red, green, blue);
 
 	__HAL_GPIO_EXTI_CLEAR_IT(BLE_EXTI_Pin); // Clear the interrupt flag
 	NVIC_EnableIRQ(BLE_EXTI_EXTI_IRQn);
@@ -352,14 +371,6 @@ extern "C" void run()
 {
 	setup();
 
-	DropletAnimation dropletAnimation(0.05f, 0.1f, 1.0f, 2.0f, 3, 5, 1, 3);
-	RubiksCubeAnimation rubiksCubeAnimation(4.0f, 0.25f);
-
-	std::array<std::reference_wrapper<Animator>, 2> animations = {
-		std::ref(dropletAnimation),
-		std::ref(rubiksCubeAnimation),
-	};
-
 	for (auto& animation : animations)
 	{
 		if (!animation.get().Init(hpCounter))
@@ -373,10 +384,14 @@ extern "C" void run()
 	{
 		InterruptQueue::HandleQueue();
 
-		animations[1].get().Update(hpCounter, red, green, blue);
+		if (animationIndex >= animations.size())
+			animationIndex = 0;
+
+		animations[animationIndex].get().Update(hpCounter, red, green, blue);
+
 		UpdateDisplay();
 
-		// MX_BlueNRG_2_Process();
+		MX_BlueNRG_2_Process();
 	}
 }
 

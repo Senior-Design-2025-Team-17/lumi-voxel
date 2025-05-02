@@ -13,6 +13,7 @@ extern std::array<float, 512> green;
 extern std::array<float, 512> blue;
 
 extern float brightness;
+extern uint32_t animationIndex;
 
 extern "C" void SetRainbowPresetColors();
 
@@ -26,7 +27,7 @@ extern "C" bool meshTransform(uint8_t* data_buffer, uint8_t Nb_bytes)
 	}
 
 	triangleMesh.Transform(transform);
-	triangleMesh.Rasterize<8, 8, 8>(blue, green, red);
+	triangleMesh.Rasterize<8, 8, 8>(red, green, blue);
 	return true;
 }
 
@@ -35,7 +36,7 @@ extern "C" bool meshTris(uint8_t* data_buffer, uint8_t Nb_bytes)
 	// Allocate tris
 	if (triangleMesh.AllocateTriangles(std::span<uint8_t>{ data_buffer, Nb_bytes }))
 	{
-		triangleMesh.Rasterize<8, 8, 8>(blue, green, red);
+		triangleMesh.Rasterize<8, 8, 8>(red, green, blue);
 		return true;
 	}
 	return false;
@@ -68,10 +69,10 @@ extern "C" bool colorMode(uint8_t* data, uint8_t count)
 		return false;
 	}
 
-	uint32_t mode       = *(uint32_t*)data;
-	float setBrightness = *(float*)(data + 4);
+	uint32_t colorMode     = *(uint32_t*)data;
+	uint32_t animationMode = *(uint32_t*)(data + 4);
 
-	switch (mode)
+	switch (colorMode)
 	{
 	case 1:
 		SetColor(1.0f, 0.0f, 0.0f);
@@ -87,7 +88,7 @@ extern "C" bool colorMode(uint8_t* data, uint8_t count)
 		break;
 	}
 
-	brightness = std::clamp(setBrightness, 0.0f, 1.0f);
+	animationIndex = animationMode;
 
-	return triangleMesh.Rasterize<8, 8, 8>(blue, green, red);
+	return true;
 }

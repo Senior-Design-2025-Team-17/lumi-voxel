@@ -42,9 +42,9 @@ class Animator
 		return { x, y, z };
 	}
 
-	virtual bool Init(HighPrecisionCounter& hpCounter) = 0;
+	virtual bool Init(HighPrecisionCounter& hpCounter) { return true; };
 
-	virtual void Update(HighPrecisionCounter& hpCounter, std::array<float, 512>& red, std::array<float, 512>& green, std::array<float, 512>& blue) = 0;
+	virtual void Update(HighPrecisionCounter& hpCounter, std::array<float, 512>& red, std::array<float, 512>& green, std::array<float, 512>& blue) {};
 
 	virtual ~Animator() {};
 };
