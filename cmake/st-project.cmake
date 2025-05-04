@@ -161,6 +161,7 @@ target_sources(
     "Core\\Src\\adc_ref.cpp"
     "Core\\Src\\custom_bus.c"
     "Core\\Src\\droplet_animation.cpp"
+    "Core\\Src\\goldfish_animation.cpp"
     "Core\\Src\\lp5890.cpp"
     "Core\\Src\\lp5899.cpp"
     "Core\\Src\\main.c"

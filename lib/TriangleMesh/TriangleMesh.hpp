@@ -354,7 +354,7 @@ class TriangleMesh : public Animator
 			meshState |= Status::VertsAllocated;
 		}
 
-		hasChanged = true;
+		// hasChanged = true;
 		return (verts_tranformed.data() != nullptr);
 	}
 

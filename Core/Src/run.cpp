@@ -15,6 +15,7 @@
 #include "adc_ref.hpp"
 #include "droplet_animation.hpp"
 #include "errors.hpp"
+#include "goldfish_animation.hpp"
 #include "high_precision_counter.hpp"
 #include "lp5890.hpp"
 #include "lp5890/mappings.hpp"
@@ -58,11 +59,13 @@ extern "C"
 TriangleMesh<256> triangleMesh __attribute__((section(".dtcmram")));
 DropletAnimation dropletAnimation __attribute__((section(".dtcmram"))) (0.05f, 0.1f, 1.0f, 2.0f, 3, 5, 1, 3);
 RubiksCubeAnimation rubiksCubeAnimation __attribute__((section(".dtcmram"))) (0.15f, 0.25f);
+GoldfishAnimation goldfishAnimation __attribute__((section(".dtcmram"))) (1.0f, 2.0f, 0.5f, 1.0f);
 
-std::array<std::reference_wrapper<Animator>, 3> animations = {
+std::array<std::reference_wrapper<Animator>, 4> animations = {
 	std::ref(triangleMesh),
 	std::ref(dropletAnimation),
-	std::ref(rubiksCubeAnimation)
+	std::ref(rubiksCubeAnimation),
+	std::ref(goldfishAnimation),
 };
 
 Scheduler scheduler(TIM6, 500, 10000, 500 * 60);
